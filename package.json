@@ -12,7 +12,7 @@
     "ai": "^6.0.198",
     "better-auth": "1.6.15",
     "lastfm-ts-api": "^1.0.0",
-    "maplibre-gl": "^5.24.0",
+    "maplibre-gl": "^6.4.1",
     "next": "^16.3.3",
     "pg": "^8.20.0",
     "posthog-js": "^1.383.1",

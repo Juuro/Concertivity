@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file. Version bumps, tags, and GitHub Releases are automated with [Release Please](https://github.com/googleapis/release-please) from [Conventional Commits](https://www.conventionalcommits.org/) merged to `main`.
 
+## [1.3.0](https://github.com/Juuro/Concertivity/compare/concertivity-v1.2.0...concertivity-v1.3.0) (2026-09-12)
+
+
+### Features
+
+* **admin:** add resend verification email for unverified users ([#291](https://github.com/Juuro/Concertivity/issues/291)) ([bf087fd](https://github.com/Juuro/Concertivity/commit/bf087fd8e206461b6d5a49d54065a8173e11a8a0))
+* **admin:** show user registration states on users page ([#289](https://github.com/Juuro/Concertivity/issues/289)) ([e962af7](https://github.com/Juuro/Concertivity/commit/e962af730fb2429ccbfa48fb6eeb4b05ca42836d))
+* **concerts:** add AI-assisted concert memory search ([#288](https://github.com/Juuro/Concertivity/issues/288)) ([ce4b0d6](https://github.com/Juuro/Concertivity/commit/ce4b0d63410f8adccc9c7c431dd978d870c5773e))
+* **concerts:** log ai search no-results to sentry ([#293](https://github.com/Juuro/Concertivity/issues/293)) ([4ba0a7a](https://github.com/Juuro/Concertivity/commit/4ba0a7af2afe3bbefff58995202f82345b30e1a7))
+
+
+### Bug Fixes
+
+* **ai-search:** avoid wrong city when geocoding setlist venues ([#304](https://github.com/Juuro/Concertivity/issues/304)) ([2c745eb](https://github.com/Juuro/Concertivity/commit/2c745eb56da761bb488ce069cfa3452f8364a1f2))
+* **auth:** handle getSession failures on server-rendered pages ([#298](https://github.com/Juuro/Concertivity/issues/298)) ([a83cb9c](https://github.com/Juuro/Concertivity/commit/a83cb9c840993e2475796bf32072c1f4b7a5809c))
+* **concert-card:** improve future badge ([#335](https://github.com/Juuro/Concertivity/issues/335)) ([ee271be](https://github.com/Juuro/Concertivity/commit/ee271be8f3a77cc11836315cfadfb804514c2327))
+* **deps:** resolve all open dependabot alerts ([#342](https://github.com/Juuro/Concertivity/issues/342)) ([c55576d](https://github.com/Juuro/Concertivity/commit/c55576df9fd042d27fd490bf2ed7b56bfe4582cf))
+* **prisma:** read database url at runtime on next 16 builds ([#300](https://github.com/Juuro/Concertivity/issues/300)) ([87652ad](https://github.com/Juuro/Concertivity/commit/87652ad05bb34118017377d670bcfb6e56d65482))
+* **prisma:** route serverless runtime through Accelerate, fix DB connection ([#303](https://github.com/Juuro/Concertivity/issues/303)) ([2614f52](https://github.com/Juuro/Concertivity/commit/2614f52f8ba091a76ae43c0244d550f173c78beb))
+* **repo:** stop tracking auto-generated next-env.d.ts ([#309](https://github.com/Juuro/Concertivity/issues/309)) ([af25c87](https://github.com/Juuro/Concertivity/commit/af25c878e46212196e971c91bc71bd49b07c5df9))
+* **test:** restore typecheck compatibility ([#336](https://github.com/Juuro/Concertivity/issues/336)) ([3252669](https://github.com/Juuro/Concertivity/commit/3252669c80c8838f6faae7200ea90582ead1f7b9))
+
 ## [1.2.0](https://github.com/Juuro/Concertivity/compare/concertivity-v1.1.0...concertivity-v1.2.0) (2026-05-11)
 
 

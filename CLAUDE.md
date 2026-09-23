@@ -71,6 +71,12 @@ High-signal instructions for coding agents. Keep this file concise and non-obvio
 - Keep motion subtle and functional.
 - Ensure `prefers-reduced-motion` behavior remains respected.
 
+## Spec-Driven Work & Architecture Decisions
+
+- New features go through spec-kit: `/speckit-specify` → `/speckit-plan` → `/speckit-tasks` → `/speckit-implement` (skills in `.claude/skills/speckit-*`, specs land under `.specify/`).
+- When a plan surfaces a decision with consequences beyond the feature at hand (schema/data-model shape, auth/session model, third-party integration boundary, cross-cutting convention), record it as an ADR in `docs/adr/` (`NNNN-title.md`, template at `docs/adr/template.md`). See `docs/adr/0001-record-architecture-decisions.md` for when/why.
+- Don't write an ADR for every feature — that's what the spec is for. ADRs are for decisions that outlive the feature.
+
 ## Screenshots / Visual Validation Workflow
 
 - Before `yarn dev`, check if a dev server is already running; do not start duplicates.

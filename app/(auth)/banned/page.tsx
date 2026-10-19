@@ -1,7 +1,7 @@
 import { Metadata } from "next"
 import { redirect } from "next/navigation"
 import { headers } from "next/headers"
-import { auth } from "@/lib/auth"
+import { getSession } from "@/lib/auth"
 import { checkUserBan } from "@/lib/ban"
 import BannedClient from "./BannedClient"
 
@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 }
 
 export default async function BannedPage() {
-  const session = await auth.api.getSession({ headers: await headers() })
+  const session = await getSession(await headers())
 
   // If not logged in, redirect to login
   if (!session?.user) {

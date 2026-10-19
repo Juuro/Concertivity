@@ -16,7 +16,7 @@ import {
 } from "@/lib/concerts/stats"
 import { getUserTotalSpentCached } from "@/lib/concerts/spending"
 import { getConcertsPaginated } from "@/lib/concerts/pagination"
-import { auth } from "@/lib/auth"
+import { getSession } from "@/lib/auth"
 import { FEATURE_FLAGS, isFeatureEnabled } from "@/utils/featureFlags"
 import { headers } from "next/headers"
 import type { Metadata } from "next"
@@ -49,7 +49,7 @@ async function HomeContent({
   searchParams: Promise<{ cursor?: string }>
 }) {
   const { cursor } = await searchParams
-  const session = await auth.api.getSession({ headers: await headers() })
+  const session = await getSession(await headers())
 
   if (session?.user) {
     return <LoggedInHome userId={session.user.id} cursor={cursor} />
@@ -163,23 +163,28 @@ async function LandingPage() {
         <div className="container">
           <HeroBanner />
 
-          <section className="home-stats" aria-labelledby="home-stats-heading">
-            <h3 id="home-stats-heading">Join the community</h3>
-            <div className="home-stats__grid">
-              <StatCard
-                value={stats.concertCount.toLocaleString()}
-                label="Concerts tracked"
-              />
-              <StatCard
-                value={stats.bandCount.toLocaleString()}
-                label="Bands"
-              />
-              <StatCard
-                value={stats.userCount.toLocaleString()}
-                label="Music fans"
-              />
-            </div>
-          </section>
+          {stats && (
+            <section
+              className="home-stats"
+              aria-labelledby="home-stats-heading"
+            >
+              <h3 id="home-stats-heading">Join the community</h3>
+              <div className="home-stats__grid">
+                <StatCard
+                  value={stats.concertCount.toLocaleString()}
+                  label="Concerts tracked"
+                />
+                <StatCard
+                  value={stats.bandCount.toLocaleString()}
+                  label="Bands"
+                />
+                <StatCard
+                  value={stats.userCount.toLocaleString()}
+                  label="Music fans"
+                />
+              </div>
+            </section>
+          )}
 
           <LandingFeatures />
 

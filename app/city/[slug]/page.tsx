@@ -9,7 +9,7 @@ import { getUserTotalSpent } from "@/lib/concerts/spending"
 import { getUserConcertCounts } from "@/lib/concerts/stats"
 import { getStartOfToday } from "@/lib/concerts/date"
 import { prisma } from "@/lib/prisma"
-import { auth } from "@/lib/auth"
+import { getSession } from "@/lib/auth"
 import { headers } from "next/headers"
 import { cityToSlug, findCityBySlug } from "../../../src/utils/helpers"
 import type { Metadata } from "next"
@@ -44,9 +44,7 @@ export default async function CityPage({
     notFound()
   }
 
-  const session = await auth.api
-    .getSession({ headers: await headers() })
-    .catch(() => null)
+  const session = await getSession(await headers())
 
   if (!session?.user) {
     redirect("/login")

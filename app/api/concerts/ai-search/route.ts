@@ -64,7 +64,8 @@ export async function POST(request: NextRequest) {
     )
     return NextResponse.json(result)
   } catch (error) {
-    // Never attach the prose to error reports (GDPR data minimization).
+    // Never attach prose to exception reports; no-result telemetry is handled in
+    // searchConcertCandidates (see aiSearchTelemetry).
     Sentry.captureException(error)
     console.error("Concert AI search failed")
     return NextResponse.json(

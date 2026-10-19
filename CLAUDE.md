@@ -71,8 +71,24 @@ High-signal instructions for coding agents. Keep this file concise and non-obvio
 - Keep motion subtle and functional.
 - Ensure `prefers-reduced-motion` behavior remains respected.
 
+## Spec-Driven Work & Architecture Decisions
+
+- New features go through spec-kit: `/speckit-specify` → `/speckit-plan` → `/speckit-tasks` → `/speckit-implement` (skills in `.claude/skills/speckit-*`, specs land under `.specify/`).
+- When a plan surfaces a decision with consequences beyond the feature at hand (schema/data-model shape, auth/session model, third-party integration boundary, cross-cutting convention), record it as an ADR in `docs/adr/` (`NNNN-title.md`, template at `docs/adr/template.md`). See `docs/adr/0001-record-architecture-decisions.md` for when/why.
+- Don't write an ADR for every feature — that's what the spec is for. ADRs are for decisions that outlive the feature.
+
 ## Screenshots / Visual Validation Workflow
 
 - Before `yarn dev`, check if a dev server is already running; do not start duplicates.
 - Use `node screenshot.mjs http://localhost:3000 ...` from project root.
 - Protected-route screenshots require local dev auth (`DEV_USER_EMAIL`, `/api/dev/login` flow).
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

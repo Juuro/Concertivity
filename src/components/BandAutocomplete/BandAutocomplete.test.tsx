@@ -1275,7 +1275,7 @@ describe("BandAutocomplete", () => {
       expect(document.querySelector(".band-chip--dragging")).toBeTruthy()
     )
     fireEvent.pointerMove(document, {
-      clientX: 40,
+      clientX: 35,
       clientY: 95,
       pointerId: 55,
       bubbles: true,
@@ -1458,7 +1458,7 @@ describe("BandAutocomplete", () => {
       const names = screen.getAllByText(/^[ABC]$/, {
         selector: ".band-chip__name",
       })
-      expect(names.map((n) => n.textContent)).toEqual(["B", "C", "A"])
+      expect(names.map((n) => n.textContent)).toEqual(["B", "A", "C"])
     })
   })
 

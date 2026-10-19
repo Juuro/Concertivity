@@ -63,16 +63,133 @@ const searchCache = makeCache<SetlistfmSetlist[]>()
 const artistCache = makeCache<SetlistfmArtist[]>()
 const setlistCache = makeCache<SetlistfmSetlist | null>()
 
-const pendingSearch = new Map<string, Promise<SetlistfmSetlist[]>>()
+interface SetlistSearchWithMetaResult {
+  setlists: SetlistfmSetlist[]
+  meta: SetlistSearchMeta
+}
+
+const pendingSearch = new Map<string, Promise<SetlistSearchWithMetaResult>>()
 const pendingArtists = new Map<string, Promise<SetlistfmArtist[]>>()
 const pendingSetlist = new Map<string, Promise<SetlistfmSetlist | null>>()
 
+export type SetlistfmErrorKind =
+  | "rate_limit"
+  | "forbidden"
+  | "http"
+  | "network"
+  | "parse"
+  | "missing_key"
+  | "feature_disabled"
+  | "circuit_open"
+
+export type SetlistfmOutcome =
+  | { kind: "success"; httpStatus: number }
+  | { kind: "not_found"; httpStatus: 404 }
+  | {
+      kind: "error"
+      httpStatus: number | null
+      errorKind: SetlistfmErrorKind
+    }
+  | {
+      kind: "unavailable"
+      errorKind: "missing_key" | "feature_disabled" | "circuit_open"
+    }
+
+export interface SetlistSearchMeta {
+  queries: number
+  emptyCount: number
+  errorCount: number
+  unavailable: boolean
+  httpStatuses: number[]
+}
+
+export const EMPTY_SETLIST_SEARCH_META: SetlistSearchMeta = {
+  queries: 0,
+  emptyCount: 0,
+  errorCount: 0,
+  unavailable: false,
+  httpStatuses: [],
+}
+
+function getUnavailableReason():
+  | "missing_key"
+  | "feature_disabled"
+  | "circuit_open"
+  | null {
+  if (!isFeatureEnabled(FEATURE_FLAGS.ENABLE_CONCERT_AI_SEARCH, false)) {
+    return "feature_disabled"
+  }
+  if (!process.env.SETLISTFM_API_KEY) return "missing_key"
+  if (Date.now() < circuitOpenUntil) return "circuit_open"
+  return null
+}
+
 function isAvailable(): boolean {
-  if (!isFeatureEnabled(FEATURE_FLAGS.ENABLE_CONCERT_AI_SEARCH, false))
-    return false
-  if (!process.env.SETLISTFM_API_KEY) return false
-  if (Date.now() < circuitOpenUntil) return false
-  return true
+  return getUnavailableReason() === null
+}
+
+/** Merge Setlist.fm call metadata across multiple year-scoped queries. */
+export function mergeSetlistSearchMeta(
+  a: SetlistSearchMeta,
+  b: SetlistSearchMeta
+): SetlistSearchMeta {
+  return {
+    queries: a.queries + b.queries,
+    emptyCount: a.emptyCount + b.emptyCount,
+    errorCount: a.errorCount + b.errorCount,
+    unavailable: a.unavailable || b.unavailable,
+    httpStatuses: [...a.httpStatuses, ...b.httpStatuses],
+  }
+}
+
+function metaFromOutcome(outcome: SetlistfmOutcome): SetlistSearchMeta {
+  if (outcome.kind === "unavailable") {
+    return {
+      queries: 0,
+      emptyCount: 0,
+      errorCount: 0,
+      unavailable: true,
+      httpStatuses: [],
+    }
+  }
+
+  if (outcome.kind === "success") {
+    return {
+      queries: 1,
+      emptyCount: 0,
+      errorCount: 0,
+      unavailable: false,
+      httpStatuses: [outcome.httpStatus],
+    }
+  }
+
+  if (outcome.kind === "not_found") {
+    return {
+      queries: 1,
+      emptyCount: 1,
+      errorCount: 0,
+      unavailable: false,
+      httpStatuses: [outcome.httpStatus],
+    }
+  }
+
+  return {
+    queries: 1,
+    emptyCount: 0,
+    errorCount: 1,
+    unavailable: false,
+    httpStatuses: outcome.httpStatus != null ? [outcome.httpStatus] : [],
+  }
+}
+
+function metaFromCachedHit(setlistCount: number): SetlistSearchMeta {
+  return {
+    queries: 0,
+    emptyCount: setlistCount === 0 ? 1 : 0,
+    errorCount: 0,
+    unavailable: false,
+    httpStatuses: [],
+  }
 }
 
 async function pace(): Promise<void> {
@@ -96,9 +213,7 @@ function asArray<T>(value: T | T[] | undefined): T[] {
 
 /**
  * Perform a single GET against Setlist.fm.
- * Returns the parsed body on success, or `null` on ANY failure (missing key,
- * timeout, network error, non-2xx). A 429/403 additionally trips the circuit
- * breaker so subsequent calls short-circuit for the cooldown window.
+ * Returns the response on success, or `null` on network/timeout failure.
  */
 async function fetchSetlistfm(
   path: string,
@@ -129,21 +244,36 @@ async function fetchSetlistfm(
 async function setlistfmGet<T>(
   path: string,
   search?: URLSearchParams
-): Promise<T | null> {
-  const apiKey = process.env.SETLISTFM_API_KEY
-  if (!apiKey) {
-    console.warn(
-      "SETLISTFM_API_KEY not configured; Setlist.fm lookups disabled"
-    )
-    return null
+): Promise<{ data: T | null; outcome: SetlistfmOutcome }> {
+  const unavailable = getUnavailableReason()
+  if (unavailable) {
+    if (unavailable === "missing_key") {
+      console.warn(
+        "SETLISTFM_API_KEY not configured; Setlist.fm lookups disabled"
+      )
+    }
+    return {
+      data: null,
+      outcome: { kind: "unavailable", errorKind: unavailable },
+    }
   }
 
+  const apiKey = process.env.SETLISTFM_API_KEY!
   const qs = search?.toString()
   const url = qs ? `${BASE_URL}${path}?${qs}` : `${BASE_URL}${path}`
 
   await pace()
   let res = await fetchSetlistfm(path, url, apiKey)
-  if (!res) return null
+  if (!res) {
+    return {
+      data: null,
+      outcome: {
+        kind: "error",
+        httpStatus: null,
+        errorKind: "network",
+      },
+    }
+  }
 
   if (res.status === 429) {
     await new Promise((resolve) =>
@@ -151,32 +281,83 @@ async function setlistfmGet<T>(
     )
     await pace()
     res = await fetchSetlistfm(path, url, apiKey)
-    if (!res) return null
+    if (!res) {
+      return {
+        data: null,
+        outcome: {
+          kind: "error",
+          httpStatus: 429,
+          errorKind: "network",
+        },
+      }
+    }
   }
 
-  if (res.status === 429 || res.status === 403) {
+  if (res.status === 429) {
     circuitOpenUntil = Date.now() + CIRCUIT_COOLDOWN_MS
     console.warn(
-      `Setlist.fm rate limit / forbidden (${res.status}); circuit open for ${CIRCUIT_COOLDOWN_MS}ms`
+      `Setlist.fm rate limit (${res.status}); circuit open for ${CIRCUIT_COOLDOWN_MS}ms`
     )
-    return null
+    return {
+      data: null,
+      outcome: {
+        kind: "error",
+        httpStatus: res.status,
+        errorKind: "rate_limit",
+      },
+    }
+  }
+
+  if (res.status === 403) {
+    circuitOpenUntil = Date.now() + CIRCUIT_COOLDOWN_MS
+    console.warn(
+      `Setlist.fm forbidden (${res.status}); circuit open for ${CIRCUIT_COOLDOWN_MS}ms`
+    )
+    return {
+      data: null,
+      outcome: {
+        kind: "error",
+        httpStatus: res.status,
+        errorKind: "forbidden",
+      },
+    }
   }
 
   if (res.status === 404) {
-    // Expected "not found" — not an error worth logging loudly.
-    return null
+    return {
+      data: null,
+      outcome: { kind: "not_found", httpStatus: 404 },
+    }
   }
 
   if (!res.ok) {
     console.error(`Setlist.fm request failed: ${res.status} ${res.statusText}`)
-    return null
+    return {
+      data: null,
+      outcome: {
+        kind: "error",
+        httpStatus: res.status,
+        errorKind: "http",
+      },
+    }
   }
 
   try {
-    return (await res.json()) as T
+    const data = (await res.json()) as T
+    return {
+      data,
+      outcome: { kind: "success", httpStatus: res.status },
+    }
   } catch (error) {
     console.error("Failed to parse Setlist.fm response:", error)
-    return null
+    return {
+      data: null,
+      outcome: {
+        kind: "error",
+        httpStatus: res.status,
+        errorKind: "parse",
+      },
+    }
   }
 }
 
@@ -203,33 +384,58 @@ function buildSearchParams(params: SetlistSearchParams): URLSearchParams {
 }
 
 /**
- * Search setlists (page 1). Returns `[]` on no-match OR failure (callers can't
- * distinguish, by design — both mean "nothing to show"). Successful responses
- * are cached for 10 minutes; failures are not cached.
+ * Search setlists (page 1) with call-outcome metadata for AI search telemetry.
+ * Returns `[]` on no-match OR failure at the setlist level; see `meta` for why.
  */
-export async function searchSetlists(
+export async function searchSetlistsWithMeta(
   params: SetlistSearchParams
-): Promise<SetlistfmSetlist[]> {
-  if (!isAvailable()) return []
+): Promise<SetlistSearchWithMetaResult> {
+  const unavailable = getUnavailableReason()
+  if (unavailable) {
+    return {
+      setlists: [],
+      meta: {
+        queries: 0,
+        emptyCount: 0,
+        errorCount: 0,
+        unavailable: true,
+        httpStatuses: [],
+      },
+    }
+  }
 
   const search = buildSearchParams(params)
   const key = search.toString()
-  if (!key) return []
+  if (!key) {
+    return { setlists: [], meta: EMPTY_SETLIST_SEARCH_META }
+  }
 
   const cached = searchCache.get(key)
-  if (cached) return cached
+  if (cached) {
+    return {
+      setlists: cached,
+      meta: metaFromCachedHit(cached.length),
+    }
+  }
 
   const inflight = pendingSearch.get(key)
   if (inflight) return inflight
 
-  const promise = (async () => {
-    const data = await setlistfmGet<SetlistfmSearchSetlistsResponse>(
-      "/search/setlists",
-      search
-    )
+  const promise = (async (): Promise<SetlistSearchWithMetaResult> => {
+    const { data, outcome } =
+      await setlistfmGet<SetlistfmSearchSetlistsResponse>(
+        "/search/setlists",
+        search
+      )
     const setlists = asArray(data?.setlist)
-    if (data !== null) searchCache.set(key, setlists, SEARCH_TTL_MS)
-    return setlists
+    if (outcome.kind === "success") {
+      searchCache.set(key, setlists, SEARCH_TTL_MS)
+    }
+    const meta = metaFromOutcome(outcome)
+    if (outcome.kind === "success" && setlists.length === 0) {
+      meta.emptyCount = 1
+    }
+    return { setlists, meta }
   })()
 
   pendingSearch.set(key, promise)
@@ -238,6 +444,17 @@ export async function searchSetlists(
   } finally {
     pendingSearch.delete(key)
   }
+}
+
+/**
+ * Search setlists (page 1). Returns `[]` on no-match OR failure (callers can't
+ * distinguish, by design — both mean "nothing to show"). Successful responses
+ * are cached for 10 minutes; failures are not cached.
+ */
+export async function searchSetlists(
+  params: SetlistSearchParams
+): Promise<SetlistfmSetlist[]> {
+  return (await searchSetlistsWithMeta(params)).setlists
 }
 
 /**
@@ -260,12 +477,15 @@ export async function searchArtists(
 
   const search = new URLSearchParams({ artistName: trimmed, sort: "relevance" })
   const promise = (async () => {
-    const data = await setlistfmGet<SetlistfmSearchArtistsResponse>(
-      "/search/artists",
-      search
-    )
+    const { data, outcome } =
+      await setlistfmGet<SetlistfmSearchArtistsResponse>(
+        "/search/artists",
+        search
+      )
     const artists = asArray(data?.artist)
-    if (data !== null) artistCache.set(key, artists, SEARCH_TTL_MS)
+    if (outcome.kind === "success") {
+      artistCache.set(key, artists, SEARCH_TTL_MS)
+    }
     return artists
   })()
 
@@ -296,12 +516,12 @@ export async function getSetlistById(
   if (inflight) return inflight
 
   const promise = (async () => {
-    const data = await setlistfmGet<SetlistfmSetlist>(
+    const { data, outcome } = await setlistfmGet<SetlistfmSetlist>(
       `/setlist/${encodeURIComponent(id)}`
     )
-    // Only cache definitive results (a found setlist). A null here may be a
-    // transient failure, so leave it uncached for a retry.
-    if (data) setlistCache.set(id, data, SETLIST_TTL_MS)
+    if (outcome.kind === "success" && data) {
+      setlistCache.set(id, data, SETLIST_TTL_MS)
+    }
     return data
   })()
 

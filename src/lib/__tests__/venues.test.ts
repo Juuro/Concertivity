@@ -19,7 +19,7 @@ import {
 } from "@/lib/venues"
 import { searchVenues } from "@/utils/photon"
 import { searchTicketmasterVenues } from "@/utils/ticketmaster"
-import type { EnhancedVenueResult } from "@/types/photon"
+import type { EnhancedVenueResult, PhotonSearchResult } from "@/types/photon"
 
 // Mock external dependencies
 vi.mock("@/utils/photon", () => ({
@@ -255,7 +255,7 @@ describe("Venues Search Module", () => {
       ])
       // User has visited a location very close to photon venue
       vi.mocked(prisma.concert.findMany).mockResolvedValueOnce([
-        { latitude: 52.521, longitude: 13.406 },
+        { latitude: 52.521, longitude: 13.406 } as never,
       ])
       vi.mocked(searchTicketmasterVenues).mockResolvedValueOnce([])
       vi.mocked(searchVenues).mockResolvedValueOnce([photonVenue])
@@ -342,9 +342,8 @@ describe("Venues Search Module", () => {
           lat: 52.52,
           lon: 13.405,
           city: "Berlin",
-          source: "photon",
           score: 10,
-        },
+        } as PhotonSearchResult,
       ])
 
       const results = await searchVenuesEnhanced("venue", { userId: "user-1" })
@@ -455,7 +454,7 @@ describe("Venues Search Module", () => {
 
       vi.mocked(prisma.$queryRaw).mockResolvedValueOnce([])
       vi.mocked(prisma.concert.findMany).mockResolvedValueOnce([
-        { latitude: 52.521, longitude: 13.406 },
+        { latitude: 52.521, longitude: 13.406 } as never,
       ])
       vi.mocked(searchTicketmasterVenues).mockResolvedValueOnce([])
       vi.mocked(searchVenues).mockResolvedValueOnce([venueWithoutScore])

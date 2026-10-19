@@ -7,7 +7,7 @@ import { getConcertsPaginated } from "@/lib/concerts/pagination"
 import { getUserTotalSpent } from "@/lib/concerts/spending"
 import { getStartOfToday } from "@/lib/concerts/date"
 import { prisma } from "@/lib/prisma"
-import { auth } from "@/lib/auth"
+import { getSession } from "@/lib/auth"
 import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 import type { Metadata } from "next"
@@ -35,9 +35,7 @@ export default async function YearPage({
   const { cursor } = await searchParams
   const yearNum = parseInt(year, 10)
 
-  const session = await auth.api
-    .getSession({ headers: await headers() })
-    .catch(() => null)
+  const session = await getSession(await headers())
 
   if (!session?.user) {
     redirect("/login")

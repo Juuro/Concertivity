@@ -1,6 +1,6 @@
 # Concertivity
 
-Track every concert you've been to. Next.js App Router frontend with Prisma/PostgreSQL and Better Auth.
+Track every concert you've been to. Next.js App Router frontend with Prisma/PostgreSQL and Better Auth techstack.
 
 Repository: [github.com/Juuro/Concertivity](https://github.com/Juuro/Concertivity)
 
@@ -45,25 +45,25 @@ Open [http://localhost:3000](http://localhost:3000) to view the app.
 
 ### Scripts
 
-| Command | Description |
-| ------- | ----------- |
-| `yarn dev` | Generate Prisma client and start the Next.js dev server |
-| `yarn build` | Generate Prisma client and production build |
-| `yarn start` | Start the production server |
-| `yarn lint` | Run ESLint |
-| `yarn format` | Format with Prettier |
-| `yarn test` | Run Vitest once |
-| `yarn test:watch` | Vitest watch mode |
-| `yarn test:coverage` | Vitest with coverage |
-| `yarn db:generate` | `prisma generate` |
-| `yarn db:migrate` | `prisma migrate dev` |
-| `yarn db:migrate:deploy` | `prisma migrate deploy` (e.g. production) |
-| `yarn db:push` | `prisma db push` (prototype / non-migration workflows) |
-| `yarn db:reset` | `prisma migrate reset` |
-| `yarn db:studio` | Open Prisma Studio |
-| `yarn commitlint --edit <file>` | Validate a commit message file (the Husky `commit-msg` hook passes `.git/COMMIT_EDITMSG`) |
-| `yarn tsx --env-file=.env scripts/prefetch-lastfm.ts` | Optional: prefetch Last.fm JSON from band names in Postgres (requires `ENABLE_LASTFM`, `LASTFM_API_KEY`) |
-| `yarn tsx --env-file=.env scripts/prefetch-geocoding.ts` | Optional: prefetch Photon geocoding cache from concert coordinates in Postgres |
+| Command                                                  | Description                                                                                              |
+| -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `yarn dev`                                               | Generate Prisma client and start the Next.js dev server                                                  |
+| `yarn build`                                             | Generate Prisma client and production build                                                              |
+| `yarn start`                                             | Start the production server                                                                              |
+| `yarn lint`                                              | Run ESLint                                                                                               |
+| `yarn format`                                            | Format with Prettier                                                                                     |
+| `yarn test`                                              | Run Vitest once                                                                                          |
+| `yarn test:watch`                                        | Vitest watch mode                                                                                        |
+| `yarn test:coverage`                                     | Vitest with coverage                                                                                     |
+| `yarn db:generate`                                       | `prisma generate`                                                                                        |
+| `yarn db:migrate`                                        | `prisma migrate dev`                                                                                     |
+| `yarn db:migrate:deploy`                                 | `prisma migrate deploy` (e.g. production)                                                                |
+| `yarn db:push`                                           | `prisma db push` (prototype / non-migration workflows)                                                   |
+| `yarn db:reset`                                          | `prisma migrate reset`                                                                                   |
+| `yarn db:studio`                                         | Open Prisma Studio                                                                                       |
+| `yarn commitlint --edit <file>`                          | Validate a commit message file (the Husky `commit-msg` hook passes `.git/COMMIT_EDITMSG`)                |
+| `yarn tsx --env-file=.env scripts/prefetch-lastfm.ts`    | Optional: prefetch Last.fm JSON from band names in Postgres (requires `ENABLE_LASTFM`, `LASTFM_API_KEY`) |
+| `yarn tsx --env-file=.env scripts/prefetch-geocoding.ts` | Optional: prefetch Photon geocoding cache from concert coordinates in Postgres                           |
 
 ## Environment variables
 
@@ -85,14 +85,14 @@ Without a Last.fm key, or with Last.fm disabled via feature flags, the app uses 
 
 ## API endpoints
 
-| Method | Path | Description |
-| ------ | ---- | ----------- |
-| `POST` | `/api/feedback` | In-app feedback (validated, rate limited). |
-| `GET` | `/api/admin/feedback` | Admin queue (`queue=active` default or `all`, filters, pagination). |
-| `GET` / `PATCH` | `/api/admin/feedback/[id]` | Admin detail and triage updates. |
-| `POST` | `/api/admin/feedback/[id]/github` | Create a linked GitHub issue. |
-| `POST` | `/api/admin/feedback/[id]/github/sync` | Refresh linked issue state from GitHub. |
-| `GET` | `/api/cron/feedback-github-sync` | Cron: batch-sync stale issues (`Authorization: Bearer CRON_SECRET`). |
+| Method          | Path                                   | Description                                                          |
+| --------------- | -------------------------------------- | -------------------------------------------------------------------- |
+| `POST`          | `/api/feedback`                        | In-app feedback (validated, rate limited).                           |
+| `GET`           | `/api/admin/feedback`                  | Admin queue (`queue=active` default or `all`, filters, pagination).  |
+| `GET` / `PATCH` | `/api/admin/feedback/[id]`             | Admin detail and triage updates.                                     |
+| `POST`          | `/api/admin/feedback/[id]/github`      | Create a linked GitHub issue.                                        |
+| `POST`          | `/api/admin/feedback/[id]/github/sync` | Refresh linked issue state from GitHub.                              |
+| `GET`           | `/api/cron/feedback-github-sync`       | Cron: batch-sync stale issues (`Authorization: Bearer CRON_SECRET`). |
 
 Other routes under `app/api/` cover authentication, concerts, bands, venues, festivals, user profile, and admin tools.
 

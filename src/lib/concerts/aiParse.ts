@@ -420,7 +420,8 @@ async function tryTextParse(
  * Returns `null` when the feature is disabled, the key is missing, the input is
  * empty/too long, or every model strategy fails — callers degrade to the manual form.
  *
- * The prose is used transiently and is NEVER persisted or logged.
+ * The prose is not stored in our database. When a search returns no matching
+ * setlists, the description may be sent to Sentry for feature quality analysis.
  */
 export async function parseConcertProse(
   prose: string
@@ -452,7 +453,7 @@ export async function parseConcertProse(
       const result = await strategy()
       if (result) return result
     } catch {
-      // Try the next strategy; never log prose.
+      // Try the next strategy; prose is not logged here (see aiSearchTelemetry).
     }
   }
 

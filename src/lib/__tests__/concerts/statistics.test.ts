@@ -551,4 +551,13 @@ describe("Dashboard & Global Stats", () => {
     const result = await getGlobalAppStats()
     expect(result).toEqual({ concertCount: 42, bandCount: 120, userCount: 15 })
   })
+
+  test("test_getGlobalAppStats_returns_null_when_db_unavailable", async () => {
+    vi.mocked(prisma.concert.count).mockRejectedValue(
+      new Error("Can't reach database server")
+    )
+    const { getGlobalAppStats } = await import("@/lib/concerts/stats")
+    const result = await getGlobalAppStats()
+    expect(result).toBeNull()
+  })
 })

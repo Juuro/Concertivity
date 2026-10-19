@@ -9,7 +9,7 @@ vi.mock("@/lib/github/fetch-github-issue-state", () => ({
 import { fetchGithubIssueStateByNumber } from "@/lib/github/fetch-github-issue-state"
 const mockFetchState = vi.mocked(fetchGithubIssueStateByNumber)
 
-const mockPrisma = vi.mocked(prisma)
+const mockPrisma = vi.mocked(prisma, { deep: true })
 
 const BASE_ROW = {
   id: "fb-1",

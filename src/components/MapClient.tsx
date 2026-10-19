@@ -2,6 +2,10 @@
 
 import React, { useCallback, useEffect, useRef, useState } from "react"
 import type { Concert } from "../types/concert"
+import type {
+  Map as MaplibreMap,
+  GeoJSONSource as MaplibreGeoJSONSource,
+} from "maplibre-gl"
 import "maplibre-gl/dist/maplibre-gl.css"
 
 interface MapClientProps {
@@ -190,7 +194,7 @@ export default function MapClient({
   concerts,
   allowFullscreen,
 }: MapClientProps) {
-  const mapInstance = useRef<maplibregl.Map | null>(null)
+  const mapInstance = useRef<MaplibreMap | null>(null)
   const mapContainer = useRef<HTMLDivElement>(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
 
@@ -299,7 +303,7 @@ export default function MapClient({
           })
           if (!features.length) return
           const clusterId = features[0].properties.cluster_id
-          const source = map.getSource("concerts") as maplibregl.GeoJSONSource
+          const source = map.getSource("concerts") as MaplibreGeoJSONSource
           const zoom = await source.getClusterExpansionZoom(clusterId)
           map.easeTo({
             center: (features[0].geometry as GeoJSON.Point).coordinates as [

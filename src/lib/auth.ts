@@ -148,10 +148,31 @@ export type Session = Omit<BaseSession, "user"> & {
   user: BaseSession["user"] & ExtendedUserFields
 }
 
+export type GetSessionOptions = {
+  /**
+   * Skip session refresh DB writes during read-only SSR checks.
+   * Reduces FAILED_TO_GET_SESSION errors from refresh races on serverless.
+   */
+  disableRefresh?: boolean
+}
+
 /**
- * Get session with proper typing for role field (added by admin plugin)
+ * Get session with proper typing for role field (added by admin plugin).
+ * Returns null when unauthenticated or when session lookup fails transiently.
  */
-export async function getSession(headers: Headers): Promise<Session | null> {
-  const session = await auth.api.getSession({ headers })
-  return session as Session | null
+export async function getSession(
+  headers: Headers,
+  options: GetSessionOptions = {}
+): Promise<Session | null> {
+  const { disableRefresh = true } = options
+
+  try {
+    const session = await auth.api.getSession({
+      headers,
+      ...(disableRefresh ? { query: { disableRefresh: true } } : {}),
+    })
+    return session as Session | null
+  } catch {
+    return null
+  }
 }

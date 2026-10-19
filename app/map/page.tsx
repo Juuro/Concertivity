@@ -5,7 +5,7 @@ import Layout from "../../src/components/layout-client"
 import MapClient from "../../src/components/MapClient"
 import { getUserConcerts } from "@/lib/concerts/read"
 import { getUserConcertCounts } from "@/lib/concerts/stats"
-import { auth } from "@/lib/auth"
+import { getSession } from "@/lib/auth"
 import { headers } from "next/headers"
 import type { Metadata } from "next"
 import { FEATURE_FLAGS, isFeatureEnabled } from "@/utils/featureFlags"
@@ -16,9 +16,7 @@ export const metadata: Metadata = {
 }
 
 export default async function MapPage() {
-  const session = await auth.api
-    .getSession({ headers: await headers() })
-    .catch(() => null)
+  const session = await getSession(await headers())
 
   if (!session?.user) {
     redirect("/login")

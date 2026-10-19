@@ -1,6 +1,6 @@
 import { headers } from "next/headers"
 import * as Sentry from "@sentry/nextjs"
-import { auth } from "@/lib/auth"
+import { getSession } from "@/lib/auth"
 import FeedbackModal from "@/components/FeedbackModal/FeedbackModal"
 import PostHogConsentBanner from "@/components/PostHogConsentBanner/PostHogConsentBanner"
 import PostHogUserSync from "@/components/PostHogUserSync/PostHogUserSync"
@@ -11,9 +11,7 @@ export default async function SessionAwareShell({
 }: {
   children: React.ReactNode
 }) {
-  const session = await auth.api
-    .getSession({ headers: await headers() })
-    .catch(() => null)
+  const session = await getSession(await headers())
 
   const sentryUserId =
     session?.user && session.user.includeUserIdInErrorReports !== false

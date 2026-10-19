@@ -44,7 +44,7 @@ export default async function BandPage({
 
   const [band, session] = await Promise.all([
     getBandBySlugLight(slug),
-    getSession(await headers()).catch(() => null),
+    getSession(await headers()),
   ])
 
   if (!session?.user) {

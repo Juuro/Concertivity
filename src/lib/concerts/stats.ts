@@ -420,16 +420,26 @@ export async function getUserUniqueBandCount(userId: string): Promise<number> {
   }
 }
 
-export async function getGlobalAppStats(): Promise<{
+export type GlobalAppStats = {
   concertCount: number
   bandCount: number
   userCount: number
-}> {
-  const now = getStartOfToday()
-  const [concertCount, bandCount, userCount] = await Promise.all([
-    prisma.concert.count({ where: { date: { lt: now } } }),
-    prisma.band.count(),
-    prisma.user.count({ where: { isPublic: true } }),
-  ])
-  return { concertCount, bandCount, userCount }
+}
+
+/**
+ * Public landing-page counts. Returns null when the database is unavailable so
+ * anonymous home renders without a 500.
+ */
+export async function getGlobalAppStats(): Promise<GlobalAppStats | null> {
+  try {
+    const now = getStartOfToday()
+    const [concertCount, bandCount, userCount] = await Promise.all([
+      prisma.concert.count({ where: { date: { lt: now } } }),
+      prisma.band.count(),
+      prisma.user.count({ where: { isPublic: true } }),
+    ])
+    return { concertCount, bandCount, userCount }
+  } catch {
+    return null
+  }
 }

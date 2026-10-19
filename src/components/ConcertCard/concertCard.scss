@@ -16,9 +16,9 @@
   grid-template-areas:
     "image body"
     "image location";
-  overflow: hidden;
   margin-bottom: 1rem;
   border-radius: 16px;
+  overflow: visible;
   position: relative;
   box-shadow: variables.$admin-shadow-sm;
   background: variables.$admin-surface;
@@ -53,6 +53,9 @@
   }
 
   &.future {
+    // Leave a little room above for the protruding badge
+    margin-top: 0.875rem;
+
     // Pink-tinted background for immediate visual distinction
     background: variables.$admin-pink-100;
 
@@ -61,12 +64,13 @@
       0 4px 24px rgba(255, 6, 102, 0.2),
       0 0 0 1px rgba(255, 6, 102, 0.12);
 
-    // "Upcoming" indicator badge
+    // "Upcoming" indicator badge — protrudes above the card
     &::before {
       content: "Upcoming";
       position: absolute;
-      top: 0.75rem;
-      right: 0.75rem;
+      top: 0;
+      right: 1.25rem;
+      transform: translateY(-50%);
       background: variables.$admin-pink-gradient;
       color: variables.$color-white;
       font-size: 0.6875rem;
@@ -76,6 +80,7 @@
       padding: 0.25rem 0.625rem;
       border-radius: 100px;
       z-index: 2;
+      box-shadow: 0 2px 8px rgba(255, 6, 102, 0.4);
     }
 
     // Band badges need white background on pink card (override .bg-primary)
@@ -101,6 +106,7 @@
     grid-area: image;
     position: relative;
     overflow: hidden;
+    border-radius: 16px 0 0 16px;
     background: variables.$admin-surface-alt;
 
     // Subtle gradient overlay for depth at bottom

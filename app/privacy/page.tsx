@@ -19,7 +19,7 @@ export default function PrivacyPage() {
             This privacy policy explains how we collect, use, store, and protect
             your personal data when you use Concertivity. It complies with the
             EU General Data Protection Regulation (GDPR) and the German Federal
-            Data Protection Act (BDSG). Last updated: 14 March 2025 .
+            Data Protection Act (BDSG). Last updated: 7 June 2026.
           </p>
 
           <section aria-labelledby="controller-heading">
@@ -130,6 +130,33 @@ export default function PrivacyPage() {
                 Legitimate interest in service stability and quality (Art.
                 6(1)(f) GDPR).
               </li>
+              <li>
+                <strong>
+                  Concert memory search (&ldquo;Help me remember&rdquo;):
+                </strong>{" "}
+                When you use the optional search assistant on the add-concert
+                page, we process the free-text description you enter (for
+                example artist, city, venue, or approximate date) to suggest
+                matching public setlists. We send your description to our AI
+                provider (Groq) to extract structured search parameters and,
+                when several matches share the same place and time window, to
+                rank candidates by how well the headliner fits your description.
+                We query Setlist.fm with structured parameters derived from that
+                parsing (artist name, city, venue, year — not your full
+                description). When you add a suggested show, we fetch the
+                corresponding setlist details from Setlist.fm using its public
+                setlist identifier. Your description is processed only for the
+                search request and is not stored in our database. When a search
+                finds no matching setlists, we may send your description and the
+                structured parameters we derived to our error and performance
+                monitoring provider (Sentry, Functional Software Inc.) so we can
+                analyse how the assistant is used and improve it; this does not
+                apply to unexpected technical error reports from that service.
+                <em>Legal basis:</em> Contract performance (Art. 6(1)(b) GDPR)
+                for running the search; legitimate interest in improving the
+                optional assistant (Art. 6(1)(f) GDPR) for no-result analysis
+                sent to Sentry.
+              </li>
             </ul>
           </section>
 
@@ -200,6 +227,51 @@ export default function PrivacyPage() {
                     third parties (e.g. OpenFreeMap); typically no personal data
                     is sent.
                   </li>
+                  <li>
+                    <strong>Concert memory search — Groq:</strong> Groq, Inc.
+                    (USA) — natural-language parsing and optional result ranking
+                    for the &ldquo;Help me remember&rdquo; assistant. We
+                    transmit the text you enter (and, for ranking, a list of
+                    candidate artist names from Setlist.fm). Groq processes this
+                    data solely to provide inference on our behalf under their{" "}
+                    <a
+                      href="https://console.groq.com/docs/legal/customer-data-processing-addendum"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Data Processing Addendum
+                    </a>{" "}
+                    (Art. 28 GDPR). Data may be processed in the USA; transfers
+                    are governed by Standard Contractual Clauses or the EU-US
+                    Data Privacy Framework. Further information:{" "}
+                    <a
+                      href="https://groq.com/privacy-policy"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Groq Privacy Policy
+                    </a>
+                    .
+                  </li>
+                  <li>
+                    <strong>Concert memory search — Setlist.fm:</strong>{" "}
+                    Setlist.fm (Live Nation Entertainment, Inc., USA) — public
+                    concert and setlist lookup. We send structured search
+                    parameters derived from your description (for example artist
+                    name, city, venue, year) and, when you add a show, a
+                    Setlist.fm setlist identifier. We do not send your account
+                    email or name. Our server&apos;s IP address is visible to
+                    Setlist.fm as part of the API request. Their privacy policy
+                    applies:{" "}
+                    <a
+                      href="https://www.setlist.fm/help/privacy"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Setlist.fm Privacy Policy
+                    </a>
+                    .
+                  </li>
                 </ul>
               </li>
             </ul>
@@ -210,11 +282,12 @@ export default function PrivacyPage() {
               4. Transfers to Third Countries
             </h2>
             <p>
-              Some processors (e.g. Vercel, Resend, GitHub, Sentry) may process
-              data in the USA or other non‑EEA countries. We ensure appropriate
-              safeguards such as adequacy decisions, Standard Contractual
-              Clauses, or the EU-US Data Privacy Framework where applicable, in
-              addition to the data processing agreements mentioned above.
+              Some processors (e.g. Vercel, Resend, GitHub, Sentry, Groq,
+              Setlist.fm / Live Nation Entertainment) may process data in the
+              USA or other non‑EEA countries. We ensure appropriate safeguards
+              such as adequacy decisions, Standard Contractual Clauses, or the
+              EU-US Data Privacy Framework where applicable, in addition to the
+              data processing agreements mentioned above.
             </p>
           </section>
 
@@ -254,6 +327,18 @@ export default function PrivacyPage() {
                 are no longer needed for handling your request and improving the
                 service, typically for up to 24 months, unless a shorter or
                 longer period is required for legal claims or compliance.
+              </li>
+              <li>
+                <strong>Concert memory search descriptions:</strong> Not stored
+                by Concertivity; processed only for the duration of the search
+                request. Groq may retain request data according to its own
+                settings and Data Processing Addendum.
+              </li>
+              <li>
+                <strong>Setlist.fm API responses:</strong> Cached in server
+                memory for up to 60 minutes to reduce API load; not linked to
+                your account unless you choose to add a matched concert to your
+                log.
               </li>
             </ul>
           </section>

@@ -69,19 +69,19 @@ const ConcertCard: React.FC<ConcertCardProps> = ({
     }
   }
 
-  const isInTheFuture = () => {
-    const concertDate = concert.date.slice(0, 10) // "YYYY-MM-DD"
-    const today = new Date().toISOString().slice(0, 10) // "YYYY-MM-DD"
+  const isInFuture = (now = new Date()) => {
+    const concertDate = new Date(concert.date)
 
-    if (concertDate >= today) {
-      return "future"
-    }
-    return ""
+    // Use provided now (e.g. for tests) or current time
+    const nowDate = typeof now === "string" ? new Date(now) : now
+
+    return concertDate >= nowDate
   }
 
-  const getDate = () => {
-    const date = new Date(concert.date)
-    return date.toLocaleDateString(DATE_LOCALE, {
+  const getDate = (now = new Date()) => {
+    const date = typeof now === "string" ? new Date(now) : now
+
+    return new Date(concert.date).toLocaleDateString(DATE_LOCALE, {
       year: "numeric",
       month: "long",
       day: "numeric",
@@ -97,7 +97,7 @@ const ConcertCard: React.FC<ConcertCardProps> = ({
 
   return (
     <li
-      className={`concert-card card ${isInTheFuture()} ${animated ? "concert-card--animated" : ""}`}
+      className={`concert-card card ${isInFuture() ? "future" : ""} ${animated ? "concert-card--animated" : ""}`}
     >
       <div className="concert-card-image" aria-hidden="true">
         {getImageSrc() ? (
@@ -115,17 +115,17 @@ const ConcertCard: React.FC<ConcertCardProps> = ({
       <div className="concert-card-body">
         <h3 className="card-title">{heading()}</h3>
         <div className="concert-card-meta">
-          {!(hideLocation && isInTheFuture()) && <span>{getDate()}</span>}
+          {!(hideLocation && isInFuture()) && <span>{getDate()}</span>}
           {concert.attendeeCount && concert.attendeeCount > 1 && (
             <span
               className="concert-card-attendees"
               title={
-                isInTheFuture()
+                isInFuture()
                   ? `${concert.attendeeCount} people going`
                   : `${concert.attendeeCount} people attended`
               }
             >
-              {isInTheFuture()
+              {isInFuture()
                 ? `${concert.attendeeCount} going`
                 : `${concert.attendeeCount} attended`}
             </span>

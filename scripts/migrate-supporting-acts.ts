@@ -44,7 +44,14 @@ if (connectionString.startsWith("prisma://")) {
 }
 
 // Warn about Prisma Postgres connections which have aggressive timeouts
-if (connectionString.includes("db.prisma.io")) {
+let connectionHost = ""
+try {
+  connectionHost = new URL(connectionString).hostname
+} catch {
+  // Unparseable URL: let the database driver report the real error.
+}
+
+if (connectionHost === "db.prisma.io") {
   console.warn(
     "Warning: Prisma Postgres (db.prisma.io) connections have short timeouts."
   )

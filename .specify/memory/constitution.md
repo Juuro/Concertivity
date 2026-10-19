@@ -1,24 +1,3 @@
-<!--
-Sync Impact Report (temporary; remove before commit)
-Version change: 1.0.0 → 1.1.0 (MINOR: new principles and materially expanded guidance)
-Modified principles:
-  - I. Security & Privacy by Default → I. Security, Privacy & Tenant Isolation (expanded: secrets,
-    rate limiting, erasure/export, security headers)
-  - II. Shared-Concert Data Model Integrity → II. Data Integrity & Database Discipline
-    (app invariants kept; added Prisma migration, query, pagination, pooling rules)
-  - III. Type-Safe, Server-First TypeScript → III. Type-Safe, Server-First Application Code
-  - IV. Accessible, Consistent UI → IV. Accessible, Consistent, Performant UI (added budgets)
-  - V. Tested, Flag-Gated Change → VII. Tested, Flag-Gated Change (renumbered)
-Added principles:
-  - V. Scalable, Stateless Design for Concurrent Use
-  - VI. Resilient External API Integration
-  - Observability & Operations requirements (Technical Constraints section)
-Added sections: Observability & Operations (within Technical Constraints), Quality Gates
-  (within Development Workflow).
-Removed sections: none.
-Deferred items: none. Numeric thresholds (timeouts, budgets) are stated as defaults that
-  individual specs MAY tighten but MUST NOT loosen without justification.
--->
 # Concertivity Constitution
 
 ## Core Principles

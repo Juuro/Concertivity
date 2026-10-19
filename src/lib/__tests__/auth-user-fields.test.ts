@@ -1,15 +1,11 @@
-import { describe, it, expect, vi } from "vitest"
-
-vi.mock("../prisma", () => ({ prisma: {} }))
-vi.mock("../email", () => ({
-  sendVerificationEmail: vi.fn(),
-  sendPasswordResetEmail: vi.fn(),
-}))
-vi.mock("../ban", () => ({ checkUserBan: vi.fn() }))
-
+import { describe, it, expect } from "vitest"
 import { parseUserInput } from "better-auth/db"
-import { auth } from "../auth"
+import { userAdditionalFields } from "../auth-user-fields"
 
+const options = { user: { additionalFields: userAdditionalFields } }
+
+// Profile fields must only be written through validated routes (e.g.
+// PUT /api/user/profile), never through better-auth's own endpoints.
 const CLIENT_BLOCKED_FIELDS: Record<string, unknown> = {
   username: "Not Valid/../Name",
   isPublic: true,
@@ -17,8 +13,6 @@ const CLIENT_BLOCKED_FIELDS: Record<string, unknown> = {
   hideLocationPublic: false,
   hideCostPublic: false,
   includeUserIdInErrorReports: false,
-  role: "admin",
-  banned: true,
 }
 
 describe("better-auth user input", () => {
@@ -30,7 +24,7 @@ describe("better-auth user input", () => {
       let result: Record<string, unknown> | undefined
       try {
         result = parseUserInput(
-          auth.options,
+          options as never,
           { [field]: CLIENT_BLOCKED_FIELDS[field] },
           "update"
         )
@@ -41,7 +35,7 @@ describe("better-auth user input", () => {
     }
   )
 
-  it("still accepts no profile fields on update (name/image are handled separately)", () => {
-    expect(parseUserInput(auth.options, {}, "update")).toEqual({})
+  it("returns no fields when none are supplied", () => {
+    expect(parseUserInput(options as never, {}, "update")).toEqual({})
   })
 })

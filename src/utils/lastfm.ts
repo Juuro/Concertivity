@@ -162,7 +162,7 @@ export const getArtistInfo = async (
       })
 
       if (!data || !data.artist) {
-        console.warn(`No Last.fm data found for ${artistName}`)
+        console.warn("No Last.fm data found for %s", artistName)
         artistCache.set(cacheKey, null)
         return null
       }
@@ -225,14 +225,15 @@ export const getArtistInfo = async (
         // Cache null to prevent repeated API calls for missing artists
         artistCache.set(cacheKey, null)
         // Log as warning (not error) since this is expected behavior
-        console.warn(`Artist "${artistName}" not found in Last.fm database`)
+        console.warn('Artist "%s" not found in Last.fm database', artistName)
         return null
       }
 
       // Invalid or suspended key: don't retry, but make it obvious why Last.fm is empty.
       if (errorCode === 10 || errorCode === 26) {
         console.warn(
-          `Last.fm API key invalid/suspended (code ${errorCode}). Skipping artist info fetch for "${artistName}".`
+          `Last.fm API key invalid/suspended (code ${errorCode}). Skipping artist info fetch for "%s".`,
+          artistName
         )
         artistCache.set(cacheKey, null)
         return null
@@ -260,7 +261,8 @@ export const getArtistInfo = async (
           artistCache.set(cacheKey, null)
 
           console.warn(
-            `Last.fm rate limit exceeded for ${artistName}. Retrying after ${backoffDelay}ms...`
+            `Last.fm rate limit exceeded for %s. Retrying after ${backoffDelay}ms...`,
+            artistName
           )
 
           // Clear pending request before retrying
@@ -278,7 +280,8 @@ export const getArtistInfo = async (
           now + GLOBAL_RATE_LIMIT_COOLDOWN
         )
         console.warn(
-          `Last.fm rate limit exceeded for ${artistName}. Skipping to avoid clogging the API.`
+          "Last.fm rate limit exceeded for %s. Skipping to avoid clogging the API.",
+          artistName
         )
         rateLimitErrors.set(cacheKey, now)
         artistCache.set(cacheKey, null)
@@ -295,7 +298,8 @@ export const getArtistInfo = async (
         if (retryCount < MAX_TIMEOUT_RETRIES) {
           const retryDelay = 1000 * (retryCount + 1) // 1s, 2s, 3s
           console.warn(
-            `Last.fm timeout for ${artistName}. Retrying after ${retryDelay}ms... (attempt ${retryCount + 1}/${MAX_TIMEOUT_RETRIES})`
+            `Last.fm timeout for %s. Retrying after ${retryDelay}ms... (attempt ${retryCount + 1}/${MAX_TIMEOUT_RETRIES})`,
+            artistName
           )
 
           // Clear pending request before retrying
@@ -307,7 +311,8 @@ export const getArtistInfo = async (
           return getArtistInfo(artistName, retryCount + 1)
         } else {
           console.error(
-            `Last.fm timeout for ${artistName} after ${MAX_TIMEOUT_RETRIES} retries. Giving up.`
+            `Last.fm timeout for %s after ${MAX_TIMEOUT_RETRIES} retries. Giving up.`,
+            artistName
           )
           artistCache.set(cacheKey, null)
           return null
@@ -315,7 +320,7 @@ export const getArtistInfo = async (
       }
 
       // Log actual errors (network issues, API problems, etc.)
-      console.error(`Error fetching Last.fm data for ${artistName}:`, error)
+      console.error("Error fetching Last.fm data for %s:", artistName, error)
       artistCache.set(cacheKey, null)
       return null
     } finally {
@@ -427,7 +432,7 @@ export async function searchLastFmArtists(
       )
     }
     if (errorCode !== 6 && errorCode !== 7) {
-      console.error(`Last.fm artist.search error for "${trimmed}":`, error)
+      console.error('Last.fm artist.search error for "%s":', trimmed, error)
     }
     return []
   } finally {

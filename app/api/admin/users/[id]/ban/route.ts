@@ -46,12 +46,9 @@ export async function POST(
       )
     }
 
-    // Sanitize reason (basic XSS prevention)
-    const sanitizedReason = reason
-      ? String(reason)
-          .slice(0, 500)
-          .replace(/<[^>]*>/g, "")
-      : null
+    // Stored as plain text; output escaping is React's job. Stripping tags with
+    // a regex is bypassable and gives a false sense of safety.
+    const sanitizedReason = reason ? String(reason).slice(0, 500) : null
 
     // Parse expires date if provided
     const banExpires = expiresAt ? new Date(expiresAt) : null

@@ -4,6 +4,7 @@ import { admin } from "better-auth/plugins/admin"
 import { prisma } from "./prisma"
 import { sendVerificationEmail, sendPasswordResetEmail } from "./email"
 import { checkUserBan } from "./ban"
+import { userAdditionalFields } from "./auth-user-fields"
 
 function getBaseURL() {
   if (process.env.BETTER_AUTH_URL) return process.env.BETTER_AUTH_URL
@@ -66,62 +67,7 @@ export const auth = betterAuth({
     },
   },
   user: {
-    additionalFields: {
-      username: {
-        type: "string",
-        required: false,
-        unique: true,
-      },
-      isPublic: {
-        type: "boolean",
-        required: false,
-        defaultValue: false,
-      },
-      currency: {
-        type: "string",
-        required: false,
-        defaultValue: "EUR",
-      },
-      hideLocationPublic: {
-        type: "boolean",
-        required: false,
-        defaultValue: true,
-      },
-      hideCostPublic: {
-        type: "boolean",
-        required: false,
-        defaultValue: true,
-      },
-      includeUserIdInErrorReports: {
-        type: "boolean",
-        required: false,
-        defaultValue: true,
-      },
-      // Added by admin plugin, declared here for TypeScript inference
-      role: {
-        type: "string",
-        required: false,
-        defaultValue: "user",
-      },
-      banned: {
-        type: "boolean",
-        required: false,
-        defaultValue: false,
-      },
-      banReason: {
-        type: "string",
-        required: false,
-      },
-      banExpires: {
-        type: "date",
-        required: false,
-      },
-      paddleCustomerId: {
-        type: "string",
-        required: false,
-        input: false,
-      },
-    },
+    additionalFields: userAdditionalFields,
   },
 })
 

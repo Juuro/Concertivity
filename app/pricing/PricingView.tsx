@@ -80,11 +80,14 @@ export function PricingView({
   paywallEnabled,
   billing: serverBilling,
   priceLabels,
+  trialPlans = {},
 }: {
   localeDe: boolean
   paywallEnabled: boolean
   billing: BillingHint | null
   priceLabels: Partial<Record<PaddlePlanKey, string>>
+  /** Plans the visitor can start a 14-day trial on (decided on the server). */
+  trialPlans?: Partial<Record<"monthly" | "yearly", boolean>>
 }) {
   const [clientBilling, setClientBilling] = useState<
     BillingHint | null | undefined
@@ -120,6 +123,11 @@ export function PricingView({
       ? "Betrag aus deinem Paddle-Katalog (siehe Umgebungsvariablen)"
       : "Amount from your Paddle catalog (set price ID env vars)"
 
+  // A subscription row (billing hint) means a trial was already used or is running.
+  const trialFor = (plan: "monthly" | "yearly") =>
+    Boolean(trialPlans[plan]) && !billing
+  const anyTrial = trialFor("monthly") || trialFor("yearly")
+
   const hasLifetimePlan =
     Boolean(billing?.isPremium) && billing?.planKey === "lifetime_beta"
 
@@ -136,9 +144,14 @@ export function PricingView({
             Start free. Go Superfan when you&apos;re ready.
           </h1>
           <p className={layout.lead}>
-            Concertivity is free to use — no trial countdown, no credit card at
-            signup. Superfan is optional: support the project and unlock premium
-            capabilities as they roll out.
+            Concertivity is free to use — no credit card at signup. Superfan is
+            optional: support the project and unlock premium capabilities as
+            they roll out.
+            {anyTrial
+              ? localeDe
+                ? " Neue Superfan-Abonnent:innen können 14 Tage kostenlos testen."
+                : " New Superfan subscribers can try it free for 14 days."
+              : null}
           </p>
         </header>
 
@@ -174,6 +187,7 @@ export function PricingView({
               currencyHint={priceLabels.monthly ? undefined : "EUR"}
               localeDe={localeDe}
               paywallEnabled={paywallEnabled}
+              trialOffered={trialFor("monthly")}
               isCurrentPlan={
                 Boolean(billing?.isPremium) && billing?.planKey === "monthly"
               }
@@ -189,6 +203,7 @@ export function PricingView({
               paywallEnabled={paywallEnabled}
               highlighted
               badge={localeDe ? "Beliebteste Wahl" : "Best value"}
+              trialOffered={trialFor("yearly")}
               isCurrentPlan={
                 Boolean(billing?.isPremium) && billing?.planKey === "yearly"
               }

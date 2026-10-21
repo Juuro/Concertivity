@@ -4,10 +4,13 @@ import styles from "@/components/pricing/PricingLayout.module.scss"
 
 interface LandingPricingSectionProps {
   paywallEnabled: boolean
+  /** A 14-day trial is configured and the paywall is on. */
+  trialOffered?: boolean
 }
 
 export default function LandingPricingSection({
   paywallEnabled,
+  trialOffered = false,
 }: LandingPricingSectionProps) {
   return (
     <section className={styles.page} aria-labelledby="landing-pricing-heading">
@@ -19,9 +22,12 @@ export default function LandingPricingSection({
             Start free. Go Superfan when you&apos;re ready.
           </h3>
           <p className={styles.lead}>
-            Concertivity is free to use — no trial countdown, no credit card at
-            signup. Superfan is optional: support the project and unlock premium
-            capabilities as they roll out.
+            Concertivity is free to use — no credit card at signup. Superfan is
+            optional: support the project and unlock premium capabilities as
+            they roll out.
+            {trialOffered
+              ? " New Superfan subscribers can try it free for 14 days."
+              : null}
           </p>
         </header>
 

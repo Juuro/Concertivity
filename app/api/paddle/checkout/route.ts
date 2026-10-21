@@ -8,13 +8,19 @@ import { createCheckoutTransaction } from "@/lib/paddle/client"
 import {
   getPaddleEnvConfig,
   getPriceIdForPlan,
+  getTrialPriceIdForPlan,
   isLifetimeOfferOpen,
 } from "@/lib/paddle/config"
 import { isUserSuperfan } from "@/lib/paddle/entitlement"
+import { getTrialEligibility } from "@/lib/paddle/trial"
+import { createRateLimiter } from "@/lib/rateLimit"
 import { paddleCheckoutBodySchema } from "@/lib/validations/paddle"
 import { FEATURE_FLAGS, isFeatureEnabled } from "@/utils/featureFlags"
 
 export const runtime = "nodejs"
+
+// Each request can make several provider calls (eligibility lookup, transaction).
+const checkoutLimiter = createRateLimiter({ windowMs: 60_000, max: 10 })
 
 export async function POST(request: NextRequest) {
   if (!isFeatureEnabled(FEATURE_FLAGS.ENABLE_PAYWALL, false)) {
@@ -26,6 +32,10 @@ export async function POST(request: NextRequest) {
   })
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  if (!checkoutLimiter.check(session.user.id)) {
+    return NextResponse.json({ error: "rate_limited" }, { status: 429 })
   }
 
   let cfg: ReturnType<typeof getPaddleEnvConfig>
@@ -80,7 +90,11 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  const priceId = getPriceIdForPlan(planKey)
+  // The trial is a property of the Paddle price, so eligibility picks the price.
+  // Eligibility is decided here from the session user; the client cannot claim it.
+  const trialPriceId = getTrialPriceIdForPlan(planKey)
+  const useTrial = trialPriceId !== null && (await getTrialEligibility(userId))
+  const priceId = useTrial ? trialPriceId : getPriceIdForPlan(planKey)
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { paddleCustomerId: true, currency: true },
@@ -101,7 +115,7 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    return NextResponse.json({ transactionId: tx.id })
+    return NextResponse.json({ transactionId: tx.id, trial: useTrial })
   } catch (error) {
     Sentry.captureException(error)
     return NextResponse.json({ error: "checkout_failed" }, { status: 502 })

@@ -3,6 +3,7 @@ import { SubscriptionStatus } from "@/generated/prisma/client"
 import { prisma } from "@/lib/prisma"
 import { stubPaddleEnv, type PrismaMock } from "@/test-utils/paddle"
 import { getCustomerPortalSessionUrl } from "./client"
+import { getPlanPriceLabel } from "./price-previews"
 import { resetPaddleConfigCacheForTests } from "./config"
 import {
   getPricingBillingHint,
@@ -16,6 +17,7 @@ vi.mock("@/lib/prisma", async () => {
   return { prisma: makePrismaMock() }
 })
 vi.mock("./client", () => ({ getCustomerPortalSessionUrl: vi.fn() }))
+vi.mock("./price-previews", () => ({ getPlanPriceLabel: vi.fn() }))
 vi.mock("./subscription-sync", () => ({
   ensureSubscriptionSyncedFromPaddle: vi.fn(),
 }))
@@ -23,6 +25,7 @@ vi.mock("./subscription-sync", () => ({
 const db = prisma as unknown as PrismaMock
 const portal = vi.mocked(getCustomerPortalSessionUrl)
 const ensureSynced = vi.mocked(ensureSubscriptionSyncedFromPaddle)
+const priceLabel = vi.mocked(getPlanPriceLabel)
 
 beforeEach(() => {
   vi.resetAllMocks()
@@ -136,6 +139,7 @@ describe("getSubscriptionSummary", () => {
         paddleSubscriptionId: "sub_1",
         currentPeriodEnd: periodEnd,
         trialEndsAt: null,
+        cancelScheduledFor: null,
         ...sub,
       },
       ...extra,
@@ -152,15 +156,81 @@ describe("getSubscriptionSummary", () => {
   it("returns plan, dates and the portal link", async () => {
     userWith({ status: SubscriptionStatus.TRIALING, trialEndsAt: trialEnd })
     portal.mockResolvedValue("https://portal.example/overview")
+    priceLabel.mockResolvedValue("€4.99")
     expect(await getSubscriptionSummary("user_1")).toEqual({
       status: SubscriptionStatus.TRIALING,
       planKey: "monthly",
       currentPeriodEnd: periodEnd.toISOString(),
       trialEndsAt: trialEnd.toISOString(),
+      cancelScheduledFor: null,
+      firstChargeAmountLabel: "€4.99",
       manageBillingUrl: "https://portal.example/overview",
       portalTimedOut: false,
     })
     expect(portal).toHaveBeenCalledWith("ctm_1", ["sub_1"], 3000)
+  })
+
+  describe("trial details", () => {
+    const trialing = {
+      status: SubscriptionStatus.TRIALING,
+      trialEndsAt: trialEnd,
+    }
+
+    it("formats the first charge in the requested locale", async () => {
+      userWith(trialing)
+      portal.mockResolvedValue("https://portal.example")
+      priceLabel.mockResolvedValue("4,99 €")
+      const s = await getSubscriptionSummary("user_1", { locale: "de-DE" })
+      expect(priceLabel).toHaveBeenCalledWith("monthly", "de-DE")
+      expect(s?.firstChargeAmountLabel).toBe("4,99 €")
+    })
+
+    it("has no amount when the price lookup fails", async () => {
+      userWith(trialing)
+      portal.mockResolvedValue("https://portal.example")
+      priceLabel.mockResolvedValue(null)
+      const s = await getSubscriptionSummary("user_1")
+      expect(s?.firstChargeAmountLabel).toBeNull()
+      expect(s?.trialEndsAt).toBe(trialEnd.toISOString())
+    })
+
+    it("never looks up the price when the portal is skipped", async () => {
+      userWith(trialing)
+      const s = await getSubscriptionSummary("user_1", {
+        includePortalSession: false,
+      })
+      expect(priceLabel).not.toHaveBeenCalled()
+      expect(s?.firstChargeAmountLabel).toBeNull()
+    })
+
+    it.each([
+      ["active", { status: SubscriptionStatus.ACTIVE }],
+      [
+        "lifetime",
+        { status: SubscriptionStatus.LIFETIME, planKey: "lifetime_beta" },
+      ],
+      [
+        "a trial with a scheduled cancel",
+        { ...trialing, cancelScheduledFor: trialEnd },
+      ],
+    ])("has no first charge for %s", async (_label, sub) => {
+      userWith(sub)
+      portal.mockResolvedValue("https://portal.example")
+      const s = await getSubscriptionSummary("user_1")
+      expect(priceLabel).not.toHaveBeenCalled()
+      expect(s?.firstChargeAmountLabel).toBeNull()
+    })
+
+    it("returns the scheduled cancellation date and keeps a canceled trial entitled", async () => {
+      userWith({ ...trialing, cancelScheduledFor: trialEnd })
+      portal.mockResolvedValue("https://portal.example")
+      const s = await getSubscriptionSummary("user_1")
+      expect(s?.cancelScheduledFor).toBe(trialEnd.toISOString())
+      db.subscription.findUnique.mockResolvedValue({
+        status: SubscriptionStatus.TRIALING,
+      })
+      expect(await isUserSuperfan("user_1")).toBe(true)
+    })
   })
 
   it("handles missing dates", async () => {

@@ -7,8 +7,10 @@ import { prisma } from "@/lib/prisma"
 import { createCheckoutTransaction } from "@/lib/paddle/client"
 import { resetPaddleConfigCacheForTests } from "@/lib/paddle/config"
 import { isUserSuperfan } from "@/lib/paddle/entitlement"
+import { getTrialEligibility } from "@/lib/paddle/trial"
 import {
   makeSession,
+  PADDLE_TRIAL_ENV,
   stubPaddleEnv,
   type PrismaMock,
 } from "@/test-utils/paddle"
@@ -23,6 +25,13 @@ vi.mock("@/lib/prisma", async () => {
 })
 vi.mock("@/lib/paddle/client", () => ({ createCheckoutTransaction: vi.fn() }))
 vi.mock("@/lib/paddle/entitlement", () => ({ isUserSuperfan: vi.fn() }))
+vi.mock("@/lib/paddle/trial", () => ({ getTrialEligibility: vi.fn() }))
+
+// The route owns a module-level limiter; replace it so tests control the verdict.
+const { limiterCheck } = vi.hoisted(() => ({ limiterCheck: vi.fn() }))
+vi.mock("@/lib/rateLimit", () => ({
+  createRateLimiter: () => ({ check: limiterCheck }),
+}))
 
 const db = prisma as unknown as PrismaMock
 const getSession = vi.mocked(auth.api.getSession) as unknown as ReturnType<
@@ -30,6 +39,7 @@ const getSession = vi.mocked(auth.api.getSession) as unknown as ReturnType<
 >
 const createTx = vi.mocked(createCheckoutTransaction)
 const superfan = vi.mocked(isUserSuperfan)
+const eligible = vi.mocked(getTrialEligibility)
 
 function post(body: unknown, raw = false) {
   return POST(
@@ -47,6 +57,8 @@ beforeEach(() => {
   vi.stubEnv("ENABLE_PAYWALL", "true")
   getSession.mockResolvedValue(makeSession())
   superfan.mockResolvedValue(false)
+  limiterCheck.mockReturnValue(true)
+  eligible.mockResolvedValue(false)
   db.user.findUnique.mockResolvedValue({
     paddleCustomerId: null,
     currency: "EUR",
@@ -106,7 +118,7 @@ describe("POST /api/paddle/checkout", () => {
   it("creates a monthly transaction for the session user only", async () => {
     const res = await post({ planKey: "monthly", userId: "attacker" })
     expect(res.status).toBe(200)
-    expect(await res.json()).toEqual({ transactionId: "txn_1" })
+    expect(await res.json()).toEqual({ transactionId: "txn_1", trial: false })
     expect(createTx).toHaveBeenCalledWith({
       items: [{ priceId: "pri_monthly", quantity: 1 }],
       customerId: undefined,
@@ -182,5 +194,137 @@ describe("POST /api/paddle/checkout", () => {
     expect(res.status).toBe(502)
     expect(await res.json()).toEqual({ error: "checkout_failed" })
     expect(Sentry.captureException).toHaveBeenCalledWith(boom)
+  })
+
+  it("answers 429 and calls nothing when the per-user limit is exceeded", async () => {
+    limiterCheck.mockReturnValue(false)
+    const res = await post({ planKey: "monthly" })
+    expect(res.status).toBe(429)
+    expect(await res.json()).toEqual({ error: "rate_limited" })
+    expect(limiterCheck).toHaveBeenCalledWith("user_1")
+    expect(eligible).not.toHaveBeenCalled()
+    expect(createTx).not.toHaveBeenCalled()
+  })
+
+  it("does not consume the limit for unauthenticated requests", async () => {
+    getSession.mockResolvedValue(null)
+    await post({ planKey: "monthly" })
+    expect(limiterCheck).not.toHaveBeenCalled()
+  })
+
+  describe("14-day trial", () => {
+    beforeEach(() => {
+      stubPaddleEnv(PADDLE_TRIAL_ENV)
+      resetPaddleConfigCacheForTests()
+      eligible.mockResolvedValue(true)
+    })
+
+    it.each([
+      ["monthly", "pri_monthly_trial"],
+      ["yearly", "pri_yearly_trial"],
+    ] as const)(
+      "uses the %s trial price for an eligible user",
+      async (plan, priceId) => {
+        const res = await post({ planKey: plan })
+        expect(res.status).toBe(200)
+        expect(await res.json()).toEqual({
+          transactionId: "txn_1",
+          trial: true,
+        })
+        expect(eligible).toHaveBeenCalledWith("user_1")
+        expect(createTx).toHaveBeenCalledWith(
+          expect.objectContaining({ items: [{ priceId, quantity: 1 }] })
+        )
+      }
+    )
+
+    it("uses the standard price when no trial price is configured", async () => {
+      vi.stubEnv("PADDLE_PRICE_ID_MONTHLY_TRIAL", "")
+      resetPaddleConfigCacheForTests()
+      const res = await post({ planKey: "monthly" })
+      expect(await res.json()).toEqual({ transactionId: "txn_1", trial: false })
+      expect(eligible).not.toHaveBeenCalled()
+      expect(createTx).toHaveBeenCalledWith(
+        expect.objectContaining({
+          items: [{ priceId: "pri_monthly", quantity: 1 }],
+        })
+      )
+    })
+
+    it("never gives the lifetime plan a trial and skips the eligibility check", async () => {
+      const res = await post({ planKey: "lifetime_beta" })
+      expect(await res.json()).toEqual({ transactionId: "txn_1", trial: false })
+      expect(eligible).not.toHaveBeenCalled()
+      expect(createTx).toHaveBeenCalledWith(
+        expect.objectContaining({
+          items: [{ priceId: "pri_lifetime", quantity: 1 }],
+        })
+      )
+    })
+
+    it("uses the standard price for an ineligible user (prior or canceled subscription, other customer)", async () => {
+      eligible.mockResolvedValue(false)
+      const res = await post({ planKey: "monthly" })
+      expect(res.status).toBe(200)
+      expect(await res.json()).toEqual({ transactionId: "txn_1", trial: false })
+      expect(createTx).toHaveBeenCalledWith(
+        expect.objectContaining({
+          items: [{ priceId: "pri_monthly", quantity: 1 }],
+        })
+      )
+    })
+
+    it("falls back to the standard price instead of failing when the lookup is unavailable", async () => {
+      // getTrialEligibility fails closed and resolves false on provider errors.
+      eligible.mockResolvedValue(false)
+      const res = await post({ planKey: "yearly" })
+      expect(res.status).toBe(200)
+      expect((await res.json()).trial).toBe(false)
+    })
+
+    it("sells the standard price when eligibility could not be read because the database failed", async () => {
+      // getTrialEligibility resolves false (never rejects) on lookup errors.
+      eligible.mockResolvedValue(false)
+      db.subscription.findUnique.mockRejectedValue(new Error("db down"))
+      const res = await post({ planKey: "monthly" })
+      expect(res.status).toBe(200)
+      expect(await res.json()).toEqual({ transactionId: "txn_1", trial: false })
+      expect(createTx).toHaveBeenCalledWith(
+        expect.objectContaining({
+          items: [{ priceId: "pri_monthly", quantity: 1 }],
+        })
+      )
+    })
+
+    it("ignores a trial claim sent by the client", async () => {
+      eligible.mockResolvedValue(false)
+      const res = await post({
+        planKey: "monthly",
+        trial: true,
+        eligible: true,
+      })
+      expect((await res.json()).trial).toBe(false)
+      expect(createTx).toHaveBeenCalledWith(
+        expect.objectContaining({
+          items: [{ priceId: "pri_monthly", quantity: 1 }],
+        })
+      )
+    })
+
+    it("refuses a user who is already in a trial and creates nothing", async () => {
+      superfan.mockResolvedValue(true)
+      const res = await post({ planKey: "monthly" })
+      expect(res.status).toBe(409)
+      expect(await res.json()).toEqual({ error: "already_subscribed" })
+      expect(eligible).not.toHaveBeenCalled()
+      expect(createTx).not.toHaveBeenCalled()
+    })
+
+    it("stays hidden while the paywall flag is off", async () => {
+      vi.stubEnv("ENABLE_PAYWALL", "false")
+      const res = await post({ planKey: "monthly" })
+      expect(res.status).toBe(404)
+      expect(eligible).not.toHaveBeenCalled()
+    })
   })
 })

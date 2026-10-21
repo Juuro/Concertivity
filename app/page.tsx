@@ -17,6 +17,7 @@ import {
 import { getUserTotalSpentCached } from "@/lib/concerts/spending"
 import { getConcertsPaginated } from "@/lib/concerts/pagination"
 import { getSession } from "@/lib/auth"
+import { isTrialOfferConfigured } from "@/lib/paddle/config"
 import { FEATURE_FLAGS, isFeatureEnabled } from "@/utils/featureFlags"
 import { headers } from "next/headers"
 import type { Metadata } from "next"
@@ -188,7 +189,14 @@ async function LandingPage() {
 
           <LandingFeatures />
 
-          <LandingPricingSection paywallEnabled={paywallEnabled} />
+          <LandingPricingSection
+            paywallEnabled={paywallEnabled}
+            trialOffered={
+              paywallEnabled &&
+              (isTrialOfferConfigured("monthly") ||
+                isTrialOfferConfigured("yearly"))
+            }
+          />
 
           <section className="home-cta" aria-labelledby="home-cta-heading">
             <h3 id="home-cta-heading">

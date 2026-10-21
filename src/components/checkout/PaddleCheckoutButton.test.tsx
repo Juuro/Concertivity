@@ -96,6 +96,60 @@ describe("PaddleCheckoutButton", () => {
     expect(screen.queryByRole("alert")).not.toBeInTheDocument()
   })
 
+  describe("trial notice", () => {
+    it("tells the user the trial was not applied and still opens the overlay", async () => {
+      respond(200, { transactionId: "txn_1", trial: false })
+      open.mockResolvedValue(undefined)
+      renderButton({ trialOffered: true })
+      click()
+      expect(await screen.findByRole("status")).toHaveTextContent(
+        "A free trial is not available for this account. You will be charged at checkout."
+      )
+      await waitFor(() => expect(open).toHaveBeenCalledWith("txn_1"))
+      expect(screen.getByRole("button", { name: "Subscribe" })).toBeEnabled()
+    })
+
+    it("uses German wording on the German site", async () => {
+      respond(200, { transactionId: "txn_1", trial: false })
+      open.mockResolvedValue(undefined)
+      renderButton({ trialOffered: true, localeDe: true })
+      click()
+      expect(await screen.findByRole("status")).toHaveTextContent(
+        "Für dieses Konto ist keine kostenlose Testphase verfügbar. Du zahlst beim Checkout."
+      )
+    })
+
+    it("stays silent when the trial was applied", async () => {
+      respond(200, { transactionId: "txn_1", trial: true })
+      open.mockResolvedValue(undefined)
+      renderButton({ trialOffered: true })
+      click()
+      await waitFor(() => expect(open).toHaveBeenCalledWith("txn_1"))
+      expect(screen.queryByRole("status")).not.toBeInTheDocument()
+    })
+
+    it("stays silent when no trial was promised", async () => {
+      respond(200, { transactionId: "txn_1", trial: false })
+      open.mockResolvedValue(undefined)
+      renderButton()
+      click()
+      await waitFor(() => expect(open).toHaveBeenCalledWith("txn_1"))
+      expect(screen.queryByRole("status")).not.toBeInTheDocument()
+    })
+
+    it("clears the notice on the next attempt", async () => {
+      respond(200, { transactionId: "txn_1", trial: false })
+      open.mockResolvedValue(undefined)
+      renderButton({ trialOffered: true })
+      click()
+      await screen.findByRole("status")
+      respond(502, { error: "checkout_failed" })
+      click()
+      await screen.findByRole("alert")
+      expect(screen.queryByRole("status")).not.toBeInTheDocument()
+    })
+  })
+
   it("shows a busy state while the request is in flight", async () => {
     let resolve!: (v: unknown) => void
     fetchMock.mockReturnValue(new Promise((r) => (resolve = r)))

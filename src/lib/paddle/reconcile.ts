@@ -1,3 +1,4 @@
+import type { Subscription as PaddleSubscription } from "@paddle/paddle-node-sdk"
 import { SubscriptionStatus } from "@/generated/prisma/client"
 import { prisma } from "@/lib/prisma"
 import { getPaddleEnvConfig } from "./config"
@@ -23,6 +24,31 @@ function mapRemoteStringToDb(s: string): SubscriptionStatus | null {
     default:
       return null
   }
+}
+
+function validDateOrNull(value: unknown): Date | null {
+  if (typeof value !== "string") return null
+  const d = new Date(value)
+  return Number.isNaN(d.getTime()) ? null : d
+}
+
+function remoteTrialEndsAt(remote: PaddleSubscription): Date | null {
+  for (const item of remote.items ?? []) {
+    if (!item.recurring) continue
+    const ends = validDateOrNull(item.trialDates?.endsAt)
+    if (ends) return ends
+  }
+  return null
+}
+
+function remoteCancelScheduledFor(remote: PaddleSubscription): Date | null {
+  return remote.scheduledChange?.action === "cancel"
+    ? validDateOrNull(remote.scheduledChange.effectiveAt)
+    : null
+}
+
+function differs(local: Date | null | undefined, remote: Date | null) {
+  return (local?.getTime() ?? null) !== (remote?.getTime() ?? null)
 }
 
 export async function runPaddleReconciliation(options?: {
@@ -66,7 +92,14 @@ export async function runPaddleReconciliation(options?: {
     try {
       const remote = await paddle.subscriptions.get(sub.paddleSubscriptionId)
       const mapped = mapRemoteStringToDb(remote.status)
-      if (mapped && mapped !== sub.status) {
+      const remoteTrialEnd = remoteTrialEndsAt(remote)
+      const remoteCancelAt = remoteCancelScheduledFor(remote)
+      const fields: string[] = []
+      if (mapped && mapped !== sub.status) fields.push("status")
+      if (differs(sub.trialEndsAt, remoteTrialEnd)) fields.push("trialEndsAt")
+      if (differs(sub.cancelScheduledFor, remoteCancelAt))
+        fields.push("cancelScheduledFor")
+      if (fields.length > 0) {
         drifts += 1
         await prisma.adminActivity.create({
           data: {
@@ -77,6 +110,12 @@ export async function runPaddleReconciliation(options?: {
             details: {
               dbStatus: sub.status,
               remoteStatus: remote.status,
+              fields,
+              dbTrialEndsAt: sub.trialEndsAt?.toISOString() ?? null,
+              remoteTrialEndsAt: remoteTrialEnd?.toISOString() ?? null,
+              dbCancelScheduledFor:
+                sub.cancelScheduledFor?.toISOString() ?? null,
+              remoteCancelScheduledFor: remoteCancelAt?.toISOString() ?? null,
             },
           },
         })

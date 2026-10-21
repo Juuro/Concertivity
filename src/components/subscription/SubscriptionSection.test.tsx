@@ -91,6 +91,101 @@ describe("SubscriptionSection", () => {
     expect(screen.queryByText(/Current period ends/)).not.toBeInTheDocument()
   })
 
+  describe("trial details", () => {
+    const trialEnd = "2026-01-15T12:00:00.000Z"
+    const trialing = {
+      ...payload,
+      status: "TRIALING",
+      planKey: "monthly",
+      trialEndsAt: trialEnd,
+      currentPeriodEnd: null,
+      cancelScheduledFor: null,
+      firstChargeAmountLabel: "€4.99",
+    }
+    const date = new Date(trialEnd).toLocaleDateString()
+
+    it("shows the first charge amount and date during a trial", async () => {
+      respondWith(trialing)
+      render(<SubscriptionSection />)
+      await settle()
+      expect(
+        screen.getByText(`First charge: €4.99 on ${date}`)
+      ).toBeInTheDocument()
+      expect(screen.queryByRole("status")).not.toBeInTheDocument()
+    })
+
+    it("shows the date alone when the amount is unavailable", async () => {
+      respondWith({ ...trialing, firstChargeAmountLabel: null })
+      render(<SubscriptionSection />)
+      await settle()
+      expect(screen.getByText(`First charge: on ${date}`)).toBeInTheDocument()
+    })
+
+    it("says access continues and nothing is charged after canceling a trial", async () => {
+      respondWith({ ...trialing, cancelScheduledFor: trialEnd })
+      render(<SubscriptionSection />)
+      await settle()
+      expect(screen.getByRole("status")).toHaveTextContent(
+        `Canceled during your trial. You keep access until ${date} and will not be charged.`
+      )
+      expect(screen.queryByText(/First charge/)).not.toBeInTheDocument()
+    })
+
+    it("shows a pending cancellation of a paid subscription", async () => {
+      respondWith({
+        ...payload,
+        status: "ACTIVE",
+        planKey: "monthly",
+        cancelScheduledFor: trialEnd,
+      })
+      render(<SubscriptionSection />)
+      await settle()
+      expect(screen.getByRole("status")).toHaveTextContent(
+        `Cancels on ${date}. You keep access until then.`
+      )
+      expect(screen.queryByText(/First charge/)).not.toBeInTheDocument()
+    })
+
+    it("tells a user whose first trial payment failed how to fix it", async () => {
+      respondWith({ ...trialing, status: "PAST_DUE" })
+      render(<SubscriptionSection />)
+      await settle()
+      expect(screen.getByRole("status")).toHaveTextContent(
+        "Your last payment did not go through. Update your payment method under Manage billing to keep your access."
+      )
+      expect(screen.getByRole("link", { name: "Manage billing" })).toBeVisible()
+      expect(screen.queryByText(/First charge/)).not.toBeInTheDocument()
+    })
+
+    it("shows the same guidance for a paid subscription that is past due", async () => {
+      respondWith({ ...payload, status: "PAST_DUE", planKey: "monthly" })
+      render(<SubscriptionSection />)
+      await settle()
+      expect(screen.getByRole("status")).toHaveTextContent(
+        "Update your payment method under Manage billing"
+      )
+    })
+
+    it.each(["ACTIVE", "TRIALING"])(
+      "shows no payment guidance for %s",
+      async (status) => {
+        respondWith({ ...trialing, status })
+        render(<SubscriptionSection />)
+        await settle()
+        expect(
+          screen.queryByText(/payment did not go through/)
+        ).not.toBeInTheDocument()
+      }
+    )
+
+    it("shows no first charge outside a trial", async () => {
+      respondWith({ ...payload, status: "ACTIVE", trialEndsAt: trialEnd })
+      render(<SubscriptionSection />)
+      await settle()
+      expect(screen.queryByText(/First charge/)).not.toBeInTheDocument()
+    })
+  })
+
   it("omits the plan line when no plan is known", async () => {
     respondWith({ ...payload, planKey: null })
     render(<SubscriptionSection />)

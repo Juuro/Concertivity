@@ -71,6 +71,24 @@ describe("erasePaddleDataForUser", () => {
     expect(anonymise).not.toHaveBeenCalled()
   })
 
+  it("cancels a trialing subscription immediately so no trial charge follows, before deleting", async () => {
+    withPaddleUser({ ...activeSub, status: SubscriptionStatus.TRIALING })
+    const order: string[] = []
+    cancel.mockImplementation(async () => {
+      order.push("cancel")
+      return undefined as never
+    })
+    deleteMany.mockImplementation(async () => {
+      order.push("delete")
+    })
+    await erase()
+    expect(cancel).toHaveBeenCalledWith("sub_1", {
+      effectiveFrom: "immediately",
+    })
+    expect(order).toEqual(["cancel", "delete"])
+    expect(anonymise).toHaveBeenCalledTimes(1)
+  })
+
   it("cancels the subscription before anonymising, then deletes and audits", async () => {
     withPaddleUser(activeSub)
     const order: string[] = []
@@ -180,6 +198,7 @@ describe("getSubscriptionExportData", () => {
     expect(arg.where).toEqual({ userId: "user_1" })
     expect(Object.keys(arg.select).sort()).toEqual(
       [
+        "cancelScheduledFor",
         "canceledAt",
         "createdAt",
         "currentPeriodEnd",

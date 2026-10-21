@@ -8,9 +8,13 @@ vi.mock("@/components/checkout/PaddleCheckoutButton", () => ({
     label: string
     paywallEnabled: boolean
     variant: string
+    trialOffered?: boolean
+    localeDe?: boolean
   }) => (
     <button
       type="button"
+      data-trial={String(props.trialOffered)}
+      data-de={String(props.localeDe)}
       data-plan={props.planKey}
       data-paywall={String(props.paywallEnabled)}
       data-variant={props.variant}
@@ -104,5 +108,72 @@ describe("PricingCard", () => {
     button = screen.getByRole("button", { name: "Subscribe" })
     expect(button).toHaveAttribute("data-plan", "lifetime_beta")
     expect(button).toHaveAttribute("data-variant", "primary")
+  })
+})
+
+describe("PricingCard trial", () => {
+  const trial = { ...base, billingPeriod: "per month", trialOffered: true }
+
+  it("offers the 14-day trial with honest terms and a trial button", () => {
+    render(<PricingCard {...trial} />)
+    expect(screen.getByText("14-day free trial")).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        "A payment method is required now. After 14 days you are charged €4.99 per month automatically unless you cancel before the trial ends."
+      )
+    ).toBeInTheDocument()
+    const button = screen.getByRole("button", { name: "Start free trial" })
+    expect(button).toHaveAttribute("data-trial", "true")
+    expect(
+      screen.queryByRole("button", { name: "Subscribe" })
+    ).not.toBeInTheDocument()
+  })
+
+  it("offers the trial in German", () => {
+    render(<PricingCard {...trial} billingPeriod="pro Monat" localeDe />)
+    expect(screen.getByText("14 Tage kostenlos testen")).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        "Eine Zahlungsmethode ist jetzt erforderlich. Nach 14 Tagen werden €4.99 pro Monat automatisch berechnet, sofern du nicht vor Ende der Testphase kündigst."
+      )
+    ).toBeInTheDocument()
+    const button = screen.getByRole("button", {
+      name: "Kostenlos testen starten",
+    })
+    expect(button).toHaveAttribute("data-de", "true")
+  })
+
+  it("does not quote an amount when only the fallback price text is shown", () => {
+    render(
+      <PricingCard
+        {...trial}
+        priceLabel="Amount from catalog"
+        currencyHint="EUR"
+      />
+    )
+    expect(
+      screen.getByText(
+        "A payment method is required now. After 14 days you are charged automatically unless you cancel before the trial ends."
+      )
+    ).toBeInTheDocument()
+  })
+
+  it("shows today's wording when no trial is offered", () => {
+    render(<PricingCard {...base} />)
+    expect(screen.queryByText(/14-day free trial/)).not.toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Subscribe" })).toHaveAttribute(
+      "data-trial",
+      "false"
+    )
+  })
+
+  it("never mentions a trial on the lifetime plan", () => {
+    render(<PricingCard {...trial} planKey="lifetime_beta" />)
+    expect(screen.queryByText(/14-day free trial/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/payment method/)).not.toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Subscribe" })).toHaveAttribute(
+      "data-trial",
+      "false"
+    )
   })
 })

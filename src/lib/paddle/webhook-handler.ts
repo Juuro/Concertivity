@@ -108,6 +108,15 @@ function trialEndsAtFromData(data: Record<string, unknown>): Date | null {
   return null
 }
 
+/** Effective date of a pending cancellation (e.g. cancel during a trial), else null. */
+function cancelScheduledForFromData(
+  data: Record<string, unknown>
+): Date | null {
+  const change = asRecord(data["scheduled_change"])
+  if (!change || change["action"] !== "cancel") return null
+  return parseIsoDate(change["effective_at"])
+}
+
 function currentPeriodEndFromData(data: Record<string, unknown>): Date | null {
   const period = asRecord(data["current_billing_period"])
   if (period) {
@@ -160,6 +169,7 @@ export async function syncSubscriptionFromPaddleData(
       currentPeriodEnd: currentPeriodEndFromData(d),
       trialEndsAt: trialEndsAtFromData(d),
       canceledAt: parseIsoDate(d["canceled_at"]),
+      cancelScheduledFor: cancelScheduledForFromData(d),
     },
     update: {
       status,
@@ -169,6 +179,7 @@ export async function syncSubscriptionFromPaddleData(
       currentPeriodEnd: currentPeriodEndFromData(d),
       trialEndsAt: trialEndsAtFromData(d),
       canceledAt: parseIsoDate(d["canceled_at"]),
+      cancelScheduledFor: cancelScheduledForFromData(d),
     },
   })
 }
@@ -335,6 +346,8 @@ export function redactWebhookPayload(payload: unknown): unknown {
 async function dispatch(envelope: PaddleWebhookEnvelope): Promise<void> {
   switch (envelope.event_type) {
     case "subscription.created":
+    case "subscription.trialing":
+    case "subscription.activated":
     case "subscription.updated":
     case "subscription.canceled":
     case "subscription.past_due":

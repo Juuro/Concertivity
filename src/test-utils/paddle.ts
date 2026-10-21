@@ -10,6 +10,12 @@ export const PADDLE_TEST_ENV = {
   PADDLE_PRICE_ID_LIFETIME_BETA: "pri_lifetime",
 } as const
 
+/** Opt-in trial price ids: pass to `stubPaddleEnv(PADDLE_TRIAL_ENV)`. */
+export const PADDLE_TRIAL_ENV = {
+  PADDLE_PRICE_ID_MONTHLY_TRIAL: "pri_monthly_trial",
+  PADDLE_PRICE_ID_YEARLY_TRIAL: "pri_yearly_trial",
+} as const
+
 export function stubPaddleEnv(extra: Record<string, string> = {}): void {
   for (const [key, value] of Object.entries({ ...PADDLE_TEST_ENV, ...extra })) {
     vi.stubEnv(key, value)
@@ -18,6 +24,8 @@ export function stubPaddleEnv(extra: Record<string, string> = {}): void {
 
 export type WebhookEventType =
   | "subscription.created"
+  | "subscription.trialing"
+  | "subscription.activated"
   | "subscription.updated"
   | "subscription.canceled"
   | "subscription.past_due"
@@ -100,6 +108,7 @@ export function buildRemoteSubscription(
     },
     nextBilledAt: "2026-02-01T00:00:00Z",
     canceledAt: null,
+    scheduledChange: null,
     items: [
       {
         recurring: true,
@@ -108,6 +117,19 @@ export function buildRemoteSubscription(
       },
     ],
     ...overrides,
+  }
+}
+
+/** Recurring line item on a trial price, as sent in subscription webhooks. */
+export function buildTrialItem(
+  endsAt = "2026-01-15T00:00:00Z",
+  priceId = "pri_monthly_trial"
+) {
+  return {
+    recurring: true,
+    price_id: priceId,
+    price: { id: priceId },
+    trial_dates: { starts_at: "2026-01-01T00:00:00Z", ends_at: endsAt },
   }
 }
 

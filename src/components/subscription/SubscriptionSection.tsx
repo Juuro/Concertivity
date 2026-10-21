@@ -12,6 +12,8 @@ type SubscriptionPayload = {
   planKey: string | null
   currentPeriodEnd: string | null
   trialEndsAt: string | null
+  cancelScheduledFor?: string | null
+  firstChargeAmountLabel?: string | null
   manageBillingUrl: string | null
   portalTimedOut: boolean
 }
@@ -110,6 +112,30 @@ export function SubscriptionSection() {
         {sub.trialEndsAt ? (
           <p className={styles.meta}>
             Trial ends: {new Date(sub.trialEndsAt).toLocaleDateString()}
+          </p>
+        ) : null}
+        {sub.status === "TRIALING" &&
+        sub.trialEndsAt &&
+        !sub.cancelScheduledFor ? (
+          <p className={styles.meta}>
+            First charge:{" "}
+            {sub.firstChargeAmountLabel
+              ? `${sub.firstChargeAmountLabel} on `
+              : "on "}
+            {new Date(sub.trialEndsAt).toLocaleDateString()}
+          </p>
+        ) : null}
+        {sub.status === "PAST_DUE" ? (
+          <p className={styles.meta} role="status">
+            Your last payment did not go through. Update your payment method
+            under Manage billing to keep your access.
+          </p>
+        ) : null}
+        {sub.cancelScheduledFor ? (
+          <p className={styles.meta} role="status">
+            {sub.status === "TRIALING"
+              ? `Canceled during your trial. You keep access until ${new Date(sub.cancelScheduledFor).toLocaleDateString()} and will not be charged.`
+              : `Cancels on ${new Date(sub.cancelScheduledFor).toLocaleDateString()}. You keep access until then.`}
           </p>
         ) : null}
         {sub.currentPeriodEnd ? (

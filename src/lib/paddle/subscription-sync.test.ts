@@ -75,6 +75,7 @@ describe("paddleSubscriptionRemoteToSyncData", () => {
       },
       next_billed_at: "2026-02-01T00:00:00Z",
       canceled_at: null,
+      scheduled_change: null,
       items: [
         {
           recurring: true,
@@ -83,6 +84,22 @@ describe("paddleSubscriptionRemoteToSyncData", () => {
           trial_dates: { starts_at: "a", ends_at: "b" },
         },
       ],
+    })
+  })
+
+  it("carries a scheduled cancellation as webhook-shaped data", () => {
+    const out = paddleSubscriptionRemoteToSyncData(
+      remote({
+        scheduledChange: {
+          action: "cancel",
+          effectiveAt: "2026-01-15T00:00:00Z",
+          resumeAt: null,
+        },
+      })
+    ) as Record<string, unknown>
+    expect(out.scheduled_change).toEqual({
+      action: "cancel",
+      effective_at: "2026-01-15T00:00:00Z",
     })
   })
 
@@ -253,6 +270,44 @@ describe("syncSubscriptionFromCheckoutTransaction", () => {
       )
     }
   )
+
+  it("syncs a zero-amount trial checkout to a trialing subscription without webhooks", async () => {
+    getTx.mockResolvedValue(
+      tx({ items: [{ price: { id: "pri_monthly_trial" } }] })
+    )
+    getSub.mockResolvedValue(
+      remote({
+        status: "trialing",
+        items: [
+          {
+            recurring: true,
+            price: { id: "pri_monthly_trial" },
+            trialDates: {
+              startsAt: "2026-01-01T00:00:00Z",
+              endsAt: "2026-01-15T00:00:00Z",
+            },
+          },
+        ],
+      })
+    )
+    expect(
+      await syncSubscriptionFromCheckoutTransaction("user_1", "txn_1")
+    ).toBe(true)
+    expect(syncData).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: "trialing",
+        items: [
+          expect.objectContaining({
+            trial_dates: {
+              starts_at: "2026-01-01T00:00:00Z",
+              ends_at: "2026-01-15T00:00:00Z",
+            },
+          }),
+        ],
+      }),
+      { userId: "user_1" }
+    )
+  })
 
   it("ignores custom data without a user id", async () => {
     getTx.mockResolvedValue(tx({ customData: ["x"] }))

@@ -125,6 +125,30 @@ describe("POST /api/paddle/webhook", () => {
     )
   })
 
+  it.each(["subscription.trialing", "subscription.activated"] as const)(
+    "accepts a signed %s event",
+    async (type) => {
+      const body = JSON.stringify(buildWebhookEvent(type, { id: "sub_1" }))
+      const res = await post(body, sign(body))
+      expect(res.status).toBe(200)
+      expect(process_).toHaveBeenCalledWith(
+        expect.objectContaining({ event_type: type })
+      )
+    }
+  )
+
+  it("still rejects event types outside the supported set", async () => {
+    const body = JSON.stringify({
+      event_id: "evt_x",
+      event_type: "subscription.imported",
+      data: {},
+    })
+    const res = await post(body, sign(body))
+    expect(res.status).toBe(400)
+    expect(await res.json()).toEqual({ error: "invalid_envelope" })
+    expect(process_).not.toHaveBeenCalled()
+  })
+
   it("reports duplicates as success", async () => {
     process_.mockResolvedValue({ duplicate: true })
     const res = await post(validBody, sign(validBody))

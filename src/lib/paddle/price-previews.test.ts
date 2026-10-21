@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { stubPaddleEnv } from "@/test-utils/paddle"
 import { getPaddleApi, rejectAfterMs } from "./client"
 import { resetPaddleConfigCacheForTests } from "./config"
-import { getPlanPriceLabels } from "./price-previews"
+import { getPlanPriceLabel, getPlanPriceLabels } from "./price-previews"
 
 vi.mock("./client", () => ({
   getPaddleApi: vi.fn(),
@@ -87,5 +87,31 @@ describe("getPlanPriceLabels", () => {
     timeout.mockImplementation(() => Promise.reject(new Error("timeout")))
     expect(await getPlanPriceLabels("en-US")).toEqual({})
     expect(timeout).toHaveBeenCalledWith(5000)
+  })
+})
+
+describe("getPlanPriceLabel", () => {
+  it("formats the regular price of one plan in the requested locale", async () => {
+    getPrice.mockResolvedValue(price("499", "EUR"))
+    expect(await getPlanPriceLabel("monthly", "en-US")).toBe("€4.99")
+    expect(getPrice).toHaveBeenCalledWith("pri_monthly")
+    expect(timeout).toHaveBeenCalledWith(3000)
+  })
+
+  it("is null when Paddle is not configured", async () => {
+    vi.stubEnv("PADDLE_API_KEY", "")
+    expect(await getPlanPriceLabel("monthly", "en-US")).toBeNull()
+    expect(getPrice).not.toHaveBeenCalled()
+  })
+
+  it("is null when the lookup fails", async () => {
+    getPrice.mockRejectedValue(new Error("404"))
+    expect(await getPlanPriceLabel("yearly", "en-US")).toBeNull()
+  })
+
+  it("is null when the lookup exceeds the timeout", async () => {
+    getPrice.mockReturnValue(new Promise(() => {}))
+    timeout.mockImplementation(() => Promise.reject(new Error("timeout")))
+    expect(await getPlanPriceLabel("monthly", "en-US")).toBeNull()
   })
 })

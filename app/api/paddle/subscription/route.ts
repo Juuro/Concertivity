@@ -17,8 +17,10 @@ export async function GET(request: NextRequest) {
     request.nextUrl.searchParams.get("portal") === "0" ||
     request.nextUrl.searchParams.get("portal") === "false"
 
+  const acceptLanguage = request.headers.get("accept-language") ?? ""
   const summary = await getSubscriptionSummary(session.user.id, {
     includePortalSession: !skipPortal,
+    locale: acceptLanguage.toLowerCase().includes("de") ? "de-DE" : "en-US",
   })
   if (!summary) {
     return NextResponse.json({ subscription: null })

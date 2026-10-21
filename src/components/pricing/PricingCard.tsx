@@ -12,6 +12,8 @@ interface PricingCardProps {
   currencyHint?: string
   localeDe: boolean
   paywallEnabled: boolean
+  /** Eligible for the 14-day trial (monthly/yearly only; never shown for lifetime). */
+  trialOffered?: boolean
   isCurrentPlan?: boolean
   highlighted?: boolean
   badge?: string
@@ -26,6 +28,7 @@ export function PricingCard({
   currencyHint,
   localeDe,
   paywallEnabled,
+  trialOffered = false,
   isCurrentPlan = false,
   highlighted = false,
   badge,
@@ -34,6 +37,22 @@ export function PricingCard({
   const vatText = localeDe
     ? "Preise zzgl. MwSt.; der finale Betrag wird beim Checkout angezeigt."
     : "Prices exclude VAT; the final amount is shown at checkout."
+
+  const showTrial = trialOffered && planKey !== "lifetime_beta"
+  // The amount is only quoted when it is the real catalog price, not the fallback text.
+  const chargeAmount = currencyHint
+    ? ""
+    : ` ${priceLabel}${billingPeriod ? ` ${billingPeriod}` : ""}`
+  const trialTerms = localeDe
+    ? `Eine Zahlungsmethode ist jetzt erforderlich. Nach 14 Tagen werden${chargeAmount} automatisch berechnet, sofern du nicht vor Ende der Testphase kündigst.`
+    : `A payment method is required now. After 14 days you are charged${chargeAmount} automatically unless you cancel before the trial ends.`
+  const subscribeLabel = showTrial
+    ? localeDe
+      ? "Kostenlos testen starten"
+      : "Start free trial"
+    : localeDe
+      ? "Jetzt abonnieren"
+      : "Subscribe"
 
   const cardClass = [styles.card, highlighted ? styles.cardHighlighted : ""]
     .filter(Boolean)
@@ -63,10 +82,20 @@ export function PricingCard({
       <p className={styles.vat}>
         <span title={vatText}>{localeDe ? "zzgl. MwSt." : "excl. VAT"}</span>
       </p>
+      {showTrial ? (
+        <>
+          <p className={styles.trial}>
+            {localeDe ? "14 Tage kostenlos testen" : "14-day free trial"}
+          </p>
+          <p className={styles.trialTerms}>{trialTerms}</p>
+        </>
+      ) : null}
       <PaddleCheckoutButton
         planKey={planKey}
-        label={localeDe ? "Jetzt abonnieren" : "Subscribe"}
+        label={subscribeLabel}
         paywallEnabled={paywallEnabled}
+        trialOffered={showTrial}
+        localeDe={localeDe}
         variant={highlighted ? "primary" : "secondary"}
         className={styles.checkoutButton}
       />

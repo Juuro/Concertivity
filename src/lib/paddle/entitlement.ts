@@ -2,6 +2,7 @@ import { SubscriptionStatus } from "@/generated/prisma/client"
 import { prisma } from "@/lib/prisma"
 import { getCustomerPortalSessionUrl } from "./client"
 import { getPlanForPriceId, tryGetPaddleEnvConfig } from "./config"
+import { getPlanPriceLabel } from "./price-previews"
 import { ensureSubscriptionSyncedFromPaddle } from "./subscription-sync"
 
 const SUPERFAN_STATUSES: SubscriptionStatus[] = [
@@ -38,6 +39,10 @@ export type SubscriptionSummary = {
   planKey: string | null
   currentPeriodEnd: string | null
   trialEndsAt: string | null
+  /** Pending cancellation (e.g. canceled during a trial): access ends on this date, no further charge. */
+  cancelScheduledFor: string | null
+  /** Amount of the first charge after a trial; only set when the portal session is requested. */
+  firstChargeAmountLabel: string | null
   manageBillingUrl: string | null
   portalTimedOut: boolean
 }
@@ -63,7 +68,7 @@ export async function getPricingBillingHint(userId: string): Promise<{
 
 export async function getSubscriptionSummary(
   userId: string,
-  options?: { includePortalSession?: boolean }
+  options?: { includePortalSession?: boolean; locale?: string }
 ): Promise<SubscriptionSummary | null> {
   await ensureSubscriptionSyncedFromPaddle(userId)
   const includePortal = options?.includePortalSession !== false
@@ -97,11 +102,26 @@ export async function getSubscriptionSummary(
     }
   }
 
+  let firstChargeAmountLabel: string | null = null
+  if (
+    includePortal &&
+    sub.status === SubscriptionStatus.TRIALING &&
+    !sub.cancelScheduledFor &&
+    (displayPlanKey === "monthly" || displayPlanKey === "yearly")
+  ) {
+    firstChargeAmountLabel = await getPlanPriceLabel(
+      displayPlanKey,
+      options?.locale ?? "en-US"
+    )
+  }
+
   return {
     status: sub.status,
     planKey: displayPlanKey,
     currentPeriodEnd: sub.currentPeriodEnd?.toISOString() ?? null,
     trialEndsAt: sub.trialEndsAt?.toISOString() ?? null,
+    cancelScheduledFor: sub.cancelScheduledFor?.toISOString() ?? null,
+    firstChargeAmountLabel,
     manageBillingUrl,
     portalTimedOut,
   }

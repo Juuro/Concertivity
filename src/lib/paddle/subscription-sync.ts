@@ -28,6 +28,12 @@ export function paddleSubscriptionRemoteToSyncData(
       : null,
     next_billed_at: remote.nextBilledAt,
     canceled_at: remote.canceledAt,
+    scheduled_change: remote.scheduledChange
+      ? {
+          action: remote.scheduledChange.action,
+          effective_at: remote.scheduledChange.effectiveAt,
+        }
+      : null,
     items: remote.items.map((it) => ({
       recurring: it.recurring,
       price_id: it.price?.id,

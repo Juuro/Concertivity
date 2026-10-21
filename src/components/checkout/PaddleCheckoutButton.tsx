@@ -13,6 +13,9 @@ interface PaddleCheckoutButtonProps {
   label: string
   className?: string
   paywallEnabled: boolean
+  /** The card promised a free trial; tell the user if the server did not apply it. */
+  trialOffered?: boolean
+  localeDe?: boolean
   variant?: "primary" | "secondary"
 }
 
@@ -21,15 +24,19 @@ export function PaddleCheckoutButton({
   label,
   className,
   paywallEnabled,
+  trialOffered = false,
+  localeDe = false,
   variant = "secondary",
 }: PaddleCheckoutButtonProps) {
   const router = useRouter()
   const { data: session, isPending } = useTypedSession()
   const [error, setError] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
   async function onClick() {
     setError(null)
+    setNotice(null)
     if (!paywallEnabled) {
       setError("Checkout is not available.")
       return
@@ -52,6 +59,7 @@ export function PaddleCheckoutButton({
       const data = (await res.json().catch(() => ({}))) as {
         error?: string
         transactionId?: string
+        trial?: boolean
       }
 
       if (res.status === 409 && data.error === "already_subscribed") {
@@ -61,6 +69,14 @@ export function PaddleCheckoutButton({
       if (!res.ok || !data.transactionId) {
         setError("Could not start checkout. Please try again.")
         return
+      }
+
+      if (trialOffered && data.trial === false) {
+        setNotice(
+          localeDe
+            ? "Für dieses Konto ist keine kostenlose Testphase verfügbar. Du zahlst beim Checkout."
+            : "A free trial is not available for this account. You will be charged at checkout."
+        )
       }
 
       await openPaddleCheckout(data.transactionId)
@@ -82,6 +98,11 @@ export function PaddleCheckoutButton({
       >
         {busy ? "Starting…" : label}
       </button>
+      {notice ? (
+        <p className={styles.notice} role="status">
+          {notice}
+        </p>
+      ) : null}
       {error ? (
         <p className={styles.error} role="alert">
           {error}

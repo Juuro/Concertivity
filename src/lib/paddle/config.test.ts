@@ -1,10 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { stubPaddleEnv } from "@/test-utils/paddle"
+import { PADDLE_TRIAL_ENV, stubPaddleEnv } from "@/test-utils/paddle"
 import {
   getPaddleEnvConfig,
   getPlanForPriceId,
   getPriceIdForPlan,
+  getTrialPriceIdForPlan,
   isLifetimeOfferOpen,
+  isTrialOfferConfigured,
   resetPaddleConfigCacheForTests,
   tryGetPaddleEnvConfig,
 } from "./config"
@@ -125,6 +127,51 @@ describe("paddle config", () => {
       expect(getPlanForPriceId("")).toBeNull()
       expect(getPlanForPriceId(null)).toBeNull()
       expect(getPlanForPriceId(undefined)).toBeNull()
+    })
+  })
+
+  describe("trial prices", () => {
+    it("keeps the config valid and offers no trial when trial ids are unset", () => {
+      expect(getPaddleEnvConfig().priceIdMonthlyTrial).toBeUndefined()
+      expect(isTrialOfferConfigured("monthly")).toBe(false)
+      expect(isTrialOfferConfigured("yearly")).toBe(false)
+      expect(getTrialPriceIdForPlan("monthly")).toBeNull()
+    })
+
+    it("offers a trial for monthly and yearly only when configured", () => {
+      stubPaddleEnv(PADDLE_TRIAL_ENV)
+      expect(isTrialOfferConfigured("monthly")).toBe(true)
+      expect(isTrialOfferConfigured("yearly")).toBe(true)
+      expect(isTrialOfferConfigured("lifetime_beta")).toBe(false)
+      expect(getTrialPriceIdForPlan("monthly")).toBe("pri_monthly_trial")
+      expect(getTrialPriceIdForPlan("yearly")).toBe("pri_yearly_trial")
+      expect(getTrialPriceIdForPlan("lifetime_beta")).toBeNull()
+    })
+
+    it("offers a trial per plan independently", () => {
+      vi.stubEnv("PADDLE_PRICE_ID_YEARLY_TRIAL", "pri_yearly_trial")
+      expect(isTrialOfferConfigured("monthly")).toBe(false)
+      expect(isTrialOfferConfigured("yearly")).toBe(true)
+    })
+
+    it("maps trial price ids to the same plan as their no-trial price", () => {
+      stubPaddleEnv(PADDLE_TRIAL_ENV)
+      expect(getPlanForPriceId("pri_monthly_trial")).toBe("monthly")
+      expect(getPlanForPriceId("pri_yearly_trial")).toBe("yearly")
+      expect(getPriceIdForPlan("monthly")).toBe("pri_monthly")
+    })
+
+    it("treats whitespace-only trial ids as unset", () => {
+      vi.stubEnv("PADDLE_PRICE_ID_MONTHLY_TRIAL", "   ")
+      expect(getPaddleEnvConfig().priceIdMonthlyTrial).toBeUndefined()
+      expect(isTrialOfferConfigured("monthly")).toBe(false)
+    })
+
+    it("returns false instead of throwing when the config is invalid", () => {
+      stubPaddleEnv(PADDLE_TRIAL_ENV)
+      vi.stubEnv("PADDLE_API_KEY", "")
+      expect(isTrialOfferConfigured("monthly")).toBe(false)
+      expect(getTrialPriceIdForPlan("yearly")).toBeNull()
     })
   })
 

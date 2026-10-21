@@ -15,8 +15,12 @@ const getSession = vi.mocked(auth.api.getSession) as unknown as ReturnType<
 >
 const summary = vi.mocked(getSubscriptionSummary)
 
-const get = (query = "") =>
-  GET(new NextRequest(`http://localhost/api/paddle/subscription${query}`))
+const get = (query = "", headers: Record<string, string> = {}) =>
+  GET(
+    new NextRequest(`http://localhost/api/paddle/subscription${query}`, {
+      headers,
+    })
+  )
 
 beforeEach(() => {
   vi.resetAllMocks()
@@ -45,6 +49,16 @@ describe("GET /api/paddle/subscription", () => {
     expect(await res.json()).toEqual({ subscription: data })
     expect(summary).toHaveBeenCalledWith("user_1", {
       includePortalSession: true,
+      locale: "en-US",
+    })
+  })
+
+  it("formats amounts for German browsers", async () => {
+    summary.mockResolvedValue(null)
+    await get("", { "accept-language": "de-DE,de;q=0.9" })
+    expect(summary).toHaveBeenCalledWith("user_1", {
+      includePortalSession: true,
+      locale: "de-DE",
     })
   })
 
@@ -55,6 +69,7 @@ describe("GET /api/paddle/subscription", () => {
       await get(`?portal=${v}`)
       expect(summary).toHaveBeenCalledWith("user_1", {
         includePortalSession: false,
+        locale: "en-US",
       })
     }
   )

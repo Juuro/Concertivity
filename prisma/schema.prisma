@@ -280,6 +280,7 @@ model Subscription {
   currentPeriodEnd     DateTime?
   trialEndsAt          DateTime?
   canceledAt           DateTime?
+  cancelScheduledFor   DateTime?
   createdAt            DateTime           @default(now())
   updatedAt            DateTime           @updatedAt
 

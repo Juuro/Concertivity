@@ -13,6 +13,8 @@ const configSchema = z.object({
   priceIdMonthly: z.string().min(1),
   priceIdYearly: z.string().min(1),
   priceIdLifetimeBeta: z.string().min(1),
+  priceIdMonthlyTrial: z.string().min(1).optional(),
+  priceIdYearlyTrial: z.string().min(1).optional(),
   lifetimeOfferDeadline: z.coerce.date().optional(),
   lifetimeOfferSeatCap: z.coerce.number().int().positive().optional(),
 })
@@ -33,6 +35,10 @@ function readConfig(): PaddleEnvConfig {
     priceIdYearly: process.env.PADDLE_PRICE_ID_YEARLY?.trim() ?? "",
     priceIdLifetimeBeta:
       process.env.PADDLE_PRICE_ID_LIFETIME_BETA?.trim() ?? "",
+    priceIdMonthlyTrial:
+      process.env.PADDLE_PRICE_ID_MONTHLY_TRIAL?.trim() || undefined,
+    priceIdYearlyTrial:
+      process.env.PADDLE_PRICE_ID_YEARLY_TRIAL?.trim() || undefined,
     lifetimeOfferDeadline:
       process.env.LIFETIME_OFFER_DEADLINE?.trim() || undefined,
     lifetimeOfferSeatCap:
@@ -99,7 +105,33 @@ export function getPlanForPriceId(
   if (priceId === c.priceIdMonthly) return "monthly"
   if (priceId === c.priceIdYearly) return "yearly"
   if (priceId === c.priceIdLifetimeBeta) return "lifetime_beta"
+  if (c.priceIdMonthlyTrial && priceId === c.priceIdMonthlyTrial)
+    return "monthly"
+  if (c.priceIdYearlyTrial && priceId === c.priceIdYearlyTrial) return "yearly"
   return null
+}
+
+/** Catalog price with the 14-day trial for a recurring plan; null when none is configured. */
+export function getTrialPriceIdForPlan(plan: PaddlePlanKey): string | null {
+  const c = tryGetPaddleEnvConfig()
+  if (!c) return null
+  switch (plan) {
+    case "monthly":
+      return c.priceIdMonthlyTrial ?? null
+    case "yearly":
+      return c.priceIdYearlyTrial ?? null
+    case "lifetime_beta":
+      return null
+    default: {
+      const _exhaustive: never = plan
+      return _exhaustive
+    }
+  }
+}
+
+/** True when the plan has a trial price configured. Never throws. */
+export function isTrialOfferConfigured(plan: PaddlePlanKey): boolean {
+  return getTrialPriceIdForPlan(plan) !== null
 }
 
 export function isLifetimeOfferOpen(now = new Date()): boolean {

@@ -7,6 +7,8 @@ import {
 
 const EVENT_TYPES = [
   "subscription.created",
+  "subscription.trialing",
+  "subscription.activated",
   "subscription.updated",
   "subscription.canceled",
   "subscription.past_due",

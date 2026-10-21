@@ -12,6 +12,8 @@ const envelopeBranch = (eventType: string) =>
  */
 export const paddleWebhookEnvelope = z.discriminatedUnion("event_type", [
   envelopeBranch("subscription.created"),
+  envelopeBranch("subscription.trialing"),
+  envelopeBranch("subscription.activated"),
   envelopeBranch("subscription.updated"),
   envelopeBranch("subscription.canceled"),
   envelopeBranch("subscription.past_due"),

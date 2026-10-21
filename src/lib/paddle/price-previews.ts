@@ -75,3 +75,29 @@ export async function getPlanPriceLabels(
 
   return out
 }
+
+const SINGLE_LABEL_TIMEOUT_MS = 3000
+
+/**
+ * Locale-formatted regular price for one plan, for places where a slow
+ * provider must not hold the page up. Null when unconfigured, on error or timeout.
+ */
+export async function getPlanPriceLabel(
+  plan: PaddlePlanKey,
+  locale: string
+): Promise<string | null> {
+  if (!tryGetPaddleEnvConfig()) return null
+  try {
+    const price = await Promise.race([
+      getPaddleApi().prices.get(getPriceIdForPlan(plan)),
+      rejectAfterMs(SINGLE_LABEL_TIMEOUT_MS),
+    ])
+    return formatPaddleUnitPrice(
+      price.unitPrice.amount,
+      price.unitPrice.currencyCode,
+      locale
+    )
+  } catch {
+    return null
+  }
+}

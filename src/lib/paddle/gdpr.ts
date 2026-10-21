@@ -86,6 +86,7 @@ export async function getSubscriptionExportData(userId: string) {
       currentPeriodEnd: true,
       trialEndsAt: true,
       canceledAt: true,
+      cancelScheduledFor: true,
       createdAt: true,
       updatedAt: true,
     },

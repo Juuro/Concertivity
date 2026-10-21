@@ -121,6 +121,11 @@ describe("runPaddleReconciliation", () => {
         details: {
           dbStatus: SubscriptionStatus.ACTIVE,
           remoteStatus: "canceled",
+          fields: ["status"],
+          dbTrialEndsAt: null,
+          remoteTrialEndsAt: null,
+          dbCancelScheduledFor: null,
+          remoteCancelScheduledFor: null,
         },
       },
     })
@@ -137,6 +142,127 @@ describe("runPaddleReconciliation", () => {
       expect((await runPaddleReconciliation()).drifts).toBe(1)
     }
   )
+
+  describe("trial drift", () => {
+    const trialEnd = new Date("2026-01-15T00:00:00Z")
+    const remoteTrial = (over: Record<string, unknown> = {}) => ({
+      status: "trialing",
+      items: [
+        {
+          recurring: true,
+          trialDates: { endsAt: "2026-01-15T00:00:00Z" },
+        },
+      ],
+      scheduledChange: null,
+      ...over,
+    })
+    const trialingSub = (over: Record<string, unknown> = {}) =>
+      localSub({
+        status: SubscriptionStatus.TRIALING,
+        trialEndsAt: trialEnd,
+        cancelScheduledFor: null,
+        ...over,
+      })
+
+    it("finds no drift when status, trial end and cancellation match", async () => {
+      db.subscription.findMany.mockResolvedValue([trialingSub()])
+      paddleGet.mockResolvedValue(remoteTrial())
+      expect((await runPaddleReconciliation()).drifts).toBe(0)
+      expect(syncData).not.toHaveBeenCalled()
+    })
+
+    it("repairs a moved trial end even when the status matches", async () => {
+      db.subscription.findMany.mockResolvedValue([
+        trialingSub({ trialEndsAt: new Date("2026-01-10T00:00:00Z") }),
+      ])
+      paddleGet.mockResolvedValue(remoteTrial())
+      expect((await runPaddleReconciliation()).drifts).toBe(1)
+      expect(db.adminActivity.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          action: "paddle_reconcile_drift",
+          details: expect.objectContaining({
+            fields: ["trialEndsAt"],
+            dbTrialEndsAt: "2026-01-10T00:00:00.000Z",
+            remoteTrialEndsAt: "2026-01-15T00:00:00.000Z",
+          }),
+        }),
+      })
+      expect(syncData).toHaveBeenCalledTimes(1)
+    })
+
+    it("repairs a trial that the provider already ended", async () => {
+      db.subscription.findMany.mockResolvedValue([trialingSub()])
+      paddleGet.mockResolvedValue({ status: "active", items: [] })
+      expect((await runPaddleReconciliation()).drifts).toBe(1)
+      expect(db.adminActivity.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          details: expect.objectContaining({
+            fields: ["status", "trialEndsAt"],
+          }),
+        }),
+      })
+    })
+
+    it("repairs a missing scheduled cancellation", async () => {
+      db.subscription.findMany.mockResolvedValue([trialingSub()])
+      paddleGet.mockResolvedValue(
+        remoteTrial({
+          scheduledChange: {
+            action: "cancel",
+            effectiveAt: "2026-01-15T00:00:00Z",
+          },
+        })
+      )
+      expect((await runPaddleReconciliation()).drifts).toBe(1)
+      expect(db.adminActivity.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          details: expect.objectContaining({
+            fields: ["cancelScheduledFor"],
+            remoteCancelScheduledFor: "2026-01-15T00:00:00.000Z",
+          }),
+        }),
+      })
+    })
+
+    it("repairs a scheduled cancellation the provider removed", async () => {
+      db.subscription.findMany.mockResolvedValue([
+        trialingSub({ cancelScheduledFor: trialEnd }),
+      ])
+      paddleGet.mockResolvedValue(remoteTrial())
+      expect((await runPaddleReconciliation()).drifts).toBe(1)
+    })
+
+    it("compares timestamps by value and ignores other scheduled changes", async () => {
+      db.subscription.findMany.mockResolvedValue([
+        trialingSub({ trialEndsAt: new Date(trialEnd.getTime()) }),
+      ])
+      paddleGet.mockResolvedValue(
+        remoteTrial({
+          scheduledChange: {
+            action: "pause",
+            effectiveAt: "2026-01-15T00:00:00Z",
+          },
+        })
+      )
+      expect((await runPaddleReconciliation()).drifts).toBe(0)
+    })
+
+    it("ignores unparsable and non-recurring trial dates", async () => {
+      db.subscription.findMany.mockResolvedValue([
+        trialingSub({ trialEndsAt: null }),
+      ])
+      paddleGet.mockResolvedValue({
+        status: "trialing",
+        items: [
+          { recurring: false, trialDates: { endsAt: "2026-01-15T00:00:00Z" } },
+          { recurring: true, trialDates: { endsAt: "not a date" } },
+          { recurring: true, trialDates: null },
+        ],
+        scheduledChange: { action: "cancel", effectiveAt: "garbage" },
+      })
+      expect((await runPaddleReconciliation()).drifts).toBe(0)
+    })
+  })
 
   it("ignores matching state and unknown remote statuses", async () => {
     db.subscription.findMany.mockResolvedValue([

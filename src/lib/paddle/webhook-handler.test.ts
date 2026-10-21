@@ -5,7 +5,9 @@ import {
   buildAdjustmentData,
   buildSubscriptionData,
   buildTransactionData,
+  buildTrialItem,
   buildWebhookEvent,
+  PADDLE_TRIAL_ENV,
   stubPaddleEnv,
   type PrismaMock,
 } from "@/test-utils/paddle"
@@ -251,6 +253,149 @@ describe("syncSubscriptionFromPaddleData", () => {
       "2026-01-20T00:00:00.000Z"
     )
     expect(create.currentPeriodEnd).toBeNull()
+  })
+})
+
+describe("trial lifecycle", () => {
+  beforeEach(() => {
+    stubPaddleEnv(PADDLE_TRIAL_ENV)
+    resetPaddleConfigCacheForTests()
+  })
+
+  it("stores a trial started on the trial price with its plan and end date", async () => {
+    await processPaddleWebhookEvent(
+      buildWebhookEvent(
+        "subscription.trialing",
+        buildSubscriptionData({
+          status: "trialing",
+          items: [buildTrialItem("2026-01-15T00:00:00Z")],
+        })
+      ) as never
+    )
+    const { create } = lastUpsert()
+    expect(create.status).toBe(SubscriptionStatus.TRIALING)
+    expect(create.planKey).toBe("monthly")
+    expect(create.paddlePriceId).toBe("pri_monthly_trial")
+    expect((create.trialEndsAt as Date).toISOString()).toBe(
+      "2026-01-15T00:00:00.000Z"
+    )
+    expect(create.cancelScheduledFor).toBeNull()
+  })
+
+  it("moves a trial to active on subscription.activated", async () => {
+    await processPaddleWebhookEvent(
+      buildWebhookEvent(
+        "subscription.activated",
+        buildSubscriptionData({ status: "active" }),
+        "evt_activated"
+      ) as never
+    )
+    expect(lastUpsert().update.status).toBe(SubscriptionStatus.ACTIVE)
+  })
+
+  it("moves a trial to past due when the first payment fails and keeps the trial end", async () => {
+    await syncSubscriptionFromPaddleData(
+      buildSubscriptionData({
+        status: "past_due",
+        items: [buildTrialItem("2026-01-15T00:00:00Z")],
+      })
+    )
+    const { update } = lastUpsert()
+    expect(update.status).toBe(SubscriptionStatus.PAST_DUE)
+    expect((update.trialEndsAt as Date).toISOString()).toBe(
+      "2026-01-15T00:00:00.000Z"
+    )
+  })
+
+  it("keeps the trial end and switches the plan when the price changes mid-trial", async () => {
+    await syncSubscriptionFromPaddleData(
+      buildSubscriptionData({
+        status: "trialing",
+        items: [buildTrialItem("2026-01-15T00:00:00Z", "pri_yearly_trial")],
+      })
+    )
+    const { update } = lastUpsert()
+    expect(update.planKey).toBe("yearly")
+    expect((update.trialEndsAt as Date).toISOString()).toBe(
+      "2026-01-15T00:00:00.000Z"
+    )
+  })
+
+  it("stores the date of a scheduled cancellation", async () => {
+    await syncSubscriptionFromPaddleData(
+      buildSubscriptionData({
+        status: "trialing",
+        items: [buildTrialItem()],
+        scheduled_change: {
+          action: "cancel",
+          effective_at: "2026-01-15T00:00:00Z",
+        },
+      })
+    )
+    const { create, update } = lastUpsert()
+    expect((create.cancelScheduledFor as Date).toISOString()).toBe(
+      "2026-01-15T00:00:00.000Z"
+    )
+    expect((update.cancelScheduledFor as Date).toISOString()).toBe(
+      "2026-01-15T00:00:00.000Z"
+    )
+  })
+
+  it("creates one trial when the same trialing event is delivered twice", async () => {
+    const event = buildWebhookEvent(
+      "subscription.trialing",
+      buildSubscriptionData({
+        status: "trialing",
+        items: [buildTrialItem("2026-01-15T00:00:00Z")],
+      }),
+      "evt_trial_1"
+    ) as never
+    db.paddleWebhookEvent.create
+      .mockResolvedValueOnce({})
+      .mockRejectedValueOnce(Object.assign(new Error("dup"), { code: "P2002" }))
+    expect(await processPaddleWebhookEvent(event)).toEqual({ duplicate: false })
+    expect(await processPaddleWebhookEvent(event)).toEqual({ duplicate: true })
+    expect(db.subscription.upsert).toHaveBeenCalledTimes(1)
+  })
+
+  it("keeps a single subscription row per user whatever order events arrive in, and the last applied event wins until reconcile repairs it", async () => {
+    // Documented limit (spec US4/AC2): events carry no ordering guard, so a stale
+    // `trialing` applied after `active` briefly stores TRIALING. Every event
+    // upserts on userId, so no second row or trial can result, and the daily
+    // reconciliation restores the provider's state.
+    await syncSubscriptionFromPaddleData(
+      buildSubscriptionData({ status: "active" })
+    )
+    await syncSubscriptionFromPaddleData(
+      buildSubscriptionData({
+        status: "trialing",
+        items: [buildTrialItem("2026-01-15T00:00:00Z")],
+      })
+    )
+    const calls = db.subscription.upsert.mock.calls.map(
+      (c) => c[0] as { where: unknown; update: { status: SubscriptionStatus } }
+    )
+    expect(calls).toHaveLength(2)
+    expect(
+      calls.every((c) => JSON.stringify(c.where) === '{"userId":"user_1"}')
+    ).toBe(true)
+    expect(calls.map((c) => c.update.status)).toEqual([
+      SubscriptionStatus.ACTIVE,
+      SubscriptionStatus.TRIALING,
+    ])
+  })
+
+  it.each([
+    ["no scheduled change", undefined],
+    ["a null scheduled change", null],
+    ["a pause", { action: "pause", effective_at: "2026-01-15T00:00:00Z" }],
+    ["a cancel without a date", { action: "cancel" }],
+    ["a cancel with an invalid date", { action: "cancel", effective_at: "x" }],
+  ])("clears the scheduled cancellation for %s", async (_name, change) => {
+    await syncSubscriptionFromPaddleData(
+      buildSubscriptionData({ scheduled_change: change })
+    )
+    expect(lastUpsert().update.cancelScheduledFor).toBeNull()
   })
 })
 

@@ -1,4 +1,5 @@
 @use "../../../src/styles/buttons.scss" as buttons;
+@use "../../../src/styles/variables.scss";
 
 .button {
   @include buttons.btn-secondary;
@@ -15,6 +16,12 @@
 
 .error {
   color: #b00020;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+}
+
+.notice {
+  color: variables.$color-black;
   font-size: 0.875rem;
   margin-top: 0.5rem;
 }

@@ -13,6 +13,7 @@ import { isPostHogSessionReplayEnabled } from "@/lib/posthog-env"
 import { useToast } from "@/components/Toast/Toast"
 import Dialog from "@/components/Dialog/Dialog"
 import { getExportFilename } from "@/lib/export"
+import { SubscriptionSection } from "@/components/subscription/SubscriptionSection"
 import "./settings.scss"
 
 export default function SettingsPage() {
@@ -400,6 +401,8 @@ export default function SettingsPage() {
           </button>
         </div>
       </form>
+
+      <SubscriptionSection />
 
       <div className="settings__panel">
         <div className="settings__section">

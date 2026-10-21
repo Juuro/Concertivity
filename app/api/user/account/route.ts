@@ -3,6 +3,7 @@ import { NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
 import { prisma } from "@/lib/prisma"
+import { erasePaddleDataForUser } from "@/lib/paddle/gdpr"
 
 export async function DELETE() {
   const session = await auth.api.getSession({
@@ -16,8 +17,11 @@ export async function DELETE() {
   const userId = session.user.id
 
   try {
-    // Delete the user record; cascades handle sessions, accounts,
-    // adminActivities, and userConcerts automatically (onDelete: Cascade).
+    await erasePaddleDataForUser(userId)
+
+    // Delete the user record; cascades handle sessions, accounts, and
+    // userConcerts automatically (onDelete: Cascade). AdminActivity rows now
+    // use onDelete SetNull on userId so Paddle erasure audits are preserved.
     // Concert.createdById / updatedById and Band / Festival audit fields use
     // onDelete: SetNull, so shared data is preserved.
     // AppFeedback rows use onDelete: SetNull and stay for audit purposes.

@@ -28,6 +28,7 @@ interface ExtendedUser {
   banned?: boolean
   banReason?: string | null
   banExpires?: Date | null
+  paddleCustomerId?: string | null
 }
 
 export interface ClientSession {

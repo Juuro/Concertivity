@@ -86,6 +86,7 @@ interface ExtendedUserFields {
   banned?: boolean
   banReason?: string | null
   banExpires?: Date | null
+  paddleCustomerId?: string | null
 }
 
 // Extended session type including all custom user fields

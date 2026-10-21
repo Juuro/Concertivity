@@ -17,7 +17,7 @@ const Header: React.FC<HeaderProps> = ({ siteTitle = "", concertCounts }) => {
   const showMapLink = isFeatureEnabled(FEATURE_FLAGS.ENABLE_MAP_PAGE, false)
 
   return (
-    <header className="bg-light shadow-sm">
+    <header className="site-header">
       <div className="container">
         <h1>
           <Link href="/">{siteTitle}</Link>
@@ -27,6 +27,7 @@ const Header: React.FC<HeaderProps> = ({ siteTitle = "", concertCounts }) => {
 
         <nav>
           <Link href="/">Home</Link>
+          <Link href="/pricing">Pricing</Link>
           <HeaderAuth showMapLink={showMapLink} />
         </nav>
       </div>

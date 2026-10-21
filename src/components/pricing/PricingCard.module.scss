@@ -1,0 +1,119 @@
+@use "../../../src/styles/variables.scss";
+
+.card {
+  background: variables.$color-white;
+  border: 1px solid rgba(0, 0, 0, 0.07);
+  border-radius: 1rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  padding: 1.75rem;
+  transition: box-shadow variables.$transition-duration
+    variables.$transition-easing-decelerate;
+
+  @media (prefers-reduced-motion: no-preference) {
+    &:hover {
+      box-shadow: 0 12px 32px rgba(255, 6, 102, 0.1);
+    }
+  }
+}
+
+.cardHighlighted {
+  background: linear-gradient(
+    180deg,
+    variables.$color-white 0%,
+    variables.$admin-pink-50 100%
+  );
+  border-color: rgba(255, 6, 102, 0.28);
+  box-shadow: 0 8px 32px rgba(255, 6, 102, 0.12);
+}
+
+.badge {
+  align-self: flex-start;
+  background: variables.$color-primary;
+  border-radius: 999px;
+  color: variables.$color-white;
+  font-family: variables.$font-family-heading;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  margin-bottom: 0.5rem;
+  padding: 0.3rem 0.75rem;
+  text-transform: uppercase;
+}
+
+.currentPlan {
+  color: variables.$color-primary;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  margin: 0 0 0.5rem;
+  text-transform: uppercase;
+}
+
+.title {
+  font-family: variables.$font-family-heading;
+  font-size: 1.35rem;
+  margin: 0 0 0.35rem;
+}
+
+.price {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.5rem;
+  margin: 0 0 0.75rem;
+}
+
+.priceAmount {
+  font-family: variables.$font-family-heading;
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.pricePeriod {
+  color: #666;
+  font-size: 0.95rem;
+}
+
+.description {
+  color: #555;
+  flex: 1;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  margin: 0 0 1rem;
+}
+
+.vat {
+  color: #666;
+  font-size: 0.8125rem;
+  margin-bottom: 0.25rem;
+}
+
+.vatHint {
+  border-bottom: 1px dotted #999;
+  color: #666;
+  cursor: help;
+  font-size: 0.875rem;
+}
+
+.trial {
+  color: variables.$color-primary;
+  font-family: variables.$font-family-heading;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  margin: 0 0 0.25rem;
+}
+
+.trialTerms {
+  color: variables.$color-black;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  margin: 0 0 0.75rem;
+}
+
+.checkoutButton {
+  margin-top: auto;
+  width: 100%;
+}

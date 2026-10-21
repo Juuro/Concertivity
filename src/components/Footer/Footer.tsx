@@ -33,6 +33,10 @@ export default function Footer() {
         Privacy
       </Link>
       <span className={styles.separator}>·</span>
+      <Link href="/pricing" className={styles.link} aria-label="Pricing plans">
+        Pricing
+      </Link>
+      <span className={styles.separator}>·</span>
       <span aria-hidden="true">Built with ❤️ on 🌍! 🤟🏳️‍🌈</span>
     </footer>
   )

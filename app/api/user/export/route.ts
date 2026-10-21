@@ -5,6 +5,8 @@ import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
 import { prisma } from "@/lib/prisma"
 import { parseSupportingActIds } from "@/lib/concerts/transform"
+import { getSubscriptionExportData } from "@/lib/paddle/gdpr"
+import { redactWebhookPayload } from "@/lib/paddle/webhook-handler"
 import { getExportFilename } from "@/lib/export"
 
 const exportQuerySchema = z.object({
@@ -48,6 +50,7 @@ export async function GET(request: NextRequest) {
         currency: true,
         hideLocationPublic: true,
         hideCostPublic: true,
+        paddleCustomerId: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -75,6 +78,24 @@ export async function GET(request: NextRequest) {
       },
       orderBy: { concert: { date: "desc" } },
     })
+
+    const subscriptionExport = await getSubscriptionExportData(userId)
+
+    const webhookCandidates = await prisma.paddleWebhookEvent.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 200,
+      select: { id: true, eventType: true, createdAt: true, payload: true },
+    })
+    const userIdMarker = `"user_id":"${userId}"`
+    const paddleWebhookSample = webhookCandidates
+      .filter((e) => JSON.stringify(e.payload).includes(userIdMarker))
+      .slice(0, 10)
+      .map((e) => ({
+        id: e.id,
+        eventType: e.eventType,
+        createdAt: e.createdAt.toISOString(),
+        payload: redactWebhookPayload(e.payload),
+      }))
 
     // Resolve all unique supporting-act band IDs in a single batch query.
     const allSupportingActIds = new Set<string>()
@@ -108,6 +129,8 @@ export async function GET(request: NextRequest) {
     const exportData = {
       exportedAt: new Date().toISOString(),
       user,
+      subscription: subscriptionExport,
+      paddleWebhookSample,
       concerts: userConcerts.map((uc) => {
         const supportingActs = (
           parseSupportingActIds(uc.supportingActIds) ?? []

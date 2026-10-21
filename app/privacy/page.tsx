@@ -480,6 +480,24 @@ export default function PrivacyPage() {
               consent at any time in <a href="/settings">Settings</a>.
             </p>
             <p>
+              For paid <strong>Superfan</strong> subscriptions, payments and
+              subscription management are processed by{" "}
+              <strong>Paddle.com Market Ltd.</strong> as{" "}
+              <strong>merchant of record</strong>. Paddle receives the data
+              required to complete checkout, issue invoices, calculate and
+              collect applicable taxes, and provide customer billing support.
+              Paddle acts as a <strong>processor</strong> for this purpose on
+              our instructions. Their privacy policy is available at{" "}
+              <a
+                href="https://www.paddle.com/legal/privacy"
+                rel="noopener noreferrer"
+                target="_blank"
+              >
+                paddle.com/legal/privacy
+              </a>
+              .
+            </p>
+            <p>
               <strong>Legal basis:</strong> Consent (Art. 6(1)(a) GDPR and,
               where applicable, § 25 TTDSG for storage/access on your end
               device). We do not activate PostHog analytics or session replay

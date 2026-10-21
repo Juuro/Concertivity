@@ -1,23 +1,11 @@
 @use "../src/styles/variables.scss";
 @use "../src/styles/buttons.scss" as buttons;
 
-.home-hero {
-  padding: 3rem 1rem;
-  text-align: center;
+.home-landing {
+  padding-bottom: 2rem;
 
-  h2 {
-    font-family: variables.$font-family-heading;
-    font-size: 2.5rem;
-    line-height: 1.2;
-    margin: 0 0 1rem;
-  }
-
-  p {
-    color: #666;
-    font-size: 1.15rem;
-    line-height: 1.6;
-    margin: 0 auto 2rem;
-    max-width: 540px;
+  .container {
+    max-width: 72rem;
   }
 }
 
@@ -42,62 +30,62 @@
   }
 }
 
-.home-features {
-  display: grid;
-  gap: 1.5rem;
-  grid-template-columns: repeat(3, 1fr);
-  padding: 2rem 0;
-
-  &__card {
-    padding: 1.5rem;
-    text-align: center;
-
-    h4 {
-      font-family: variables.$font-family-heading;
-      margin: 0 0 0.5rem;
-    }
-
-    p {
-      color: #666;
-      font-size: 0.95rem;
-      line-height: 1.5;
-      margin: 0;
-    }
-  }
-
-  &__icon {
-    display: block;
-    font-size: 2rem;
-    margin-bottom: 0.75rem;
-  }
-}
-
 .home-cta {
-  padding: 2rem 1rem;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(255, 6, 102, 0.04) 100%
+  );
+  border-radius: 1rem;
+  margin-top: 1rem;
+  padding: 2.5rem 1.5rem;
   text-align: center;
 
   h3 {
     font-family: variables.$font-family-heading;
-    margin: 0 0 0.5rem;
+    font-size: clamp(1.5rem, 3.5vw, 2rem);
+    margin: 0 0 0.75rem;
   }
 
   p {
     color: #666;
-    margin: 0 0 1.5rem;
+    font-size: 1.05rem;
+    line-height: 1.6;
+    margin: 0 auto 1.5rem;
+    max-width: 36rem;
+  }
+
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    justify-content: center;
   }
 }
 
 .home-btn {
   @include buttons.btn-primary;
   display: inline-block;
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   font-weight: bold;
+  min-height: 2.75rem;
   padding: 0.75rem 2rem;
+
+  &--secondary {
+    @include buttons.btn-secondary;
+    border-color: rgba(255, 6, 102, 0.35);
+    color: variables.$color-primary;
+
+    &:hover {
+      background: variables.$admin-pink-50;
+      border-color: variables.$color-primary;
+      color: variables.$color-primary;
+    }
+  }
 }
 
 @media screen and (max-width: 680px) {
-  .home-stats__grid,
-  .home-features {
+  .home-stats__grid {
     grid-template-columns: 1fr;
   }
 }

@@ -51,6 +51,7 @@ export const FEATURE_FLAGS = {
   ENABLE_EXTERNAL_BAND_SUGGEST: "ENABLE_EXTERNAL_BAND_SUGGEST",
   ENABLE_MAP_PAGE: "ENABLE_MAP_PAGE",
   ENABLE_STATISTICS_WIDGET: "ENABLE_STATISTICS_WIDGET",
+  ENABLE_PAYWALL: "ENABLE_PAYWALL",
   // AI-assisted "help me remember" concert backfill (Groq parse + Setlist.fm search).
   // Gates both the API routes and the inline panel. Off by default (opt-in rollout).
   ENABLE_CONCERT_AI_SEARCH: "ENABLE_CONCERT_AI_SEARCH",

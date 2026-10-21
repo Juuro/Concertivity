@@ -8,6 +8,7 @@ const nextConfig = {
     "@prisma/adapter-pg",
     "pg",
     "prisma",
+    "@paddle/paddle-node-sdk",
   ],
   images: {
     remotePatterns: [

@@ -1,3 +1,4 @@
+import Link from "next/link"
 import React from "react"
 import styles from "./heroBanner.module.scss"
 
@@ -15,6 +16,14 @@ const HeroBanner: React.FC = () => (
       <li>Charts — top years, bands, and cities</li>
       <li>Band pages with genre info and history</li>
     </ul>
+    <div className={styles.actions}>
+      <Link href="/register" className={styles.ctaPrimary}>
+        Start free
+      </Link>
+      <Link href="/pricing" className={styles.ctaSecondary}>
+        See pricing
+      </Link>
+    </div>
   </section>
 )
 

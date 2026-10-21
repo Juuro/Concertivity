@@ -2,9 +2,10 @@ import React, { Suspense } from "react"
 import Link from "next/link"
 import Layout from "../src/components/layout-client"
 import HeroBanner from "@/components/HeroBanner/heroBanner"
+import LandingFeatures from "@/components/landing/LandingFeatures"
+import LandingPricingSection from "@/components/landing/LandingPricingSection"
 import StatisticsWidgetServer from "../src/components/StatisticsWidget/StatisticsWidgetServer"
 import StatCard from "@/components/StatCard/StatCard"
-import FeatureCard from "@/components/FeatureCard/FeatureCard"
 import { ConcertListInfinite } from "../src/components/ConcertList"
 import {
   getUserConcertStatistics,
@@ -16,6 +17,7 @@ import {
 import { getUserTotalSpentCached } from "@/lib/concerts/spending"
 import { getConcertsPaginated } from "@/lib/concerts/pagination"
 import { getSession } from "@/lib/auth"
+import { isTrialOfferConfigured } from "@/lib/paddle/config"
 import { FEATURE_FLAGS, isFeatureEnabled } from "@/utils/featureFlags"
 import { headers } from "next/headers"
 import type { Metadata } from "next"
@@ -154,26 +156,20 @@ async function LoggedInHome({
 
 async function LandingPage() {
   const stats = await getGlobalAppStats()
+  const paywallEnabled = isFeatureEnabled(FEATURE_FLAGS.ENABLE_PAYWALL, false)
 
   return (
     <Layout>
-      <main>
+      <main className="home-landing">
         <div className="container">
           <HeroBanner />
-          <section className="home-hero">
-            <h2>Your concert history, beautifully tracked</h2>
-            <p>
-              Never forget a show. Track every concert, discover your patterns,
-              and share your musical journey.
-            </p>
-            <Link href="/login" className="home-btn">
-              Get Started
-            </Link>
-          </section>
 
           {stats && (
-            <section className="home-stats">
-              <h3>Join the community</h3>
+            <section
+              className="home-stats"
+              aria-labelledby="home-stats-heading"
+            >
+              <h3 id="home-stats-heading">Join the community</h3>
               <div className="home-stats__grid">
                 <StatCard
                   value={stats.concertCount.toLocaleString()}
@@ -191,38 +187,33 @@ async function LandingPage() {
             </section>
           )}
 
-          <section className="home-features">
-            <FeatureCard
-              icon="🎶"
-              title="Track every show"
-              description="Log concerts with dates, venues, cities, and lineups. Build your complete concert history."
-              iconClassName="home-features__icon"
-              cardClassName="home-features__card"
-            />
-            <FeatureCard
-              icon="📊"
-              title="Discover patterns"
-              description="See your top bands, favorite cities, and busiest years with beautiful charts and statistics."
-              iconClassName="home-features__icon"
-              cardClassName="home-features__card"
-            />
-            <FeatureCard
-              icon="🌍"
-              title="Map your journey"
-              description="Visualize all your concerts on an interactive map. See how far your music has taken you."
-              iconClassName="home-features__icon"
-              cardClassName="home-features__card"
-            />
-          </section>
+          <LandingFeatures />
 
-          <section className="home-cta">
-            <h3>Ready to start tracking?</h3>
+          <LandingPricingSection
+            paywallEnabled={paywallEnabled}
+            trialOffered={
+              paywallEnabled &&
+              (isTrialOfferConfigured("monthly") ||
+                isTrialOfferConfigured("yearly"))
+            }
+          />
+
+          <section className="home-cta" aria-labelledby="home-cta-heading">
+            <h3 id="home-cta-heading">
+              Your next show deserves a spot in your diary
+            </h3>
             <p>
-              Create a free account to begin building your concert collection.
+              Sign up free in minutes. Upgrade to Superfan only if you want to
+              support Concertivity and get early access to premium features.
             </p>
-            <Link href="/login" className="home-btn">
-              Get Started
-            </Link>
+            <div className="home-cta__actions">
+              <Link href="/register" className="home-btn">
+                Start free
+              </Link>
+              <Link href="/pricing" className="home-btn home-btn--secondary">
+                View pricing
+              </Link>
+            </div>
           </section>
         </div>
       </main>

@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
         targetId: activity.targetId,
         details: activity.details,
         createdAt: activity.createdAt,
-        user: activity.user.name || activity.user.email,
+        user: activity.user?.name || activity.user?.email,
       })),
       total,
       limit,

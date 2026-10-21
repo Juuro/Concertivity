@@ -1873,6 +1873,20 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@paddle/paddle-js@npm:^1.6.4":
+  version: 1.6.4
+  resolution: "@paddle/paddle-js@npm:1.6.4"
+  checksum: 10c0/4c0887b9aa9becf6e090bf9ebf4eab57ec881c1836d8e78d69ecc0e98351d84bc42d409cada4da96ae1ec22ae986ab97f686cf3118449c27f4a9881772e3b051
+  languageName: node
+  linkType: hard
+
+"@paddle/paddle-node-sdk@npm:^3.8.0":
+  version: 3.8.0
+  resolution: "@paddle/paddle-node-sdk@npm:3.8.0"
+  checksum: 10c0/f2e876aed1f49936f0da53b0924e4ba61d3e412e06a510339285b3638c11e130ec03083c628dca0fb51e2159227d0f9c35a8fc9f91df8a4fda09c3d7eb533fea
+  languageName: node
+  linkType: hard
+
 "@parcel/watcher-android-arm64@npm:2.5.6":
   version: 2.5.6
   resolution: "@parcel/watcher-android-arm64@npm:2.5.6"
@@ -4351,6 +4365,8 @@ __metadata:
     "@ai-sdk/groq": "npm:^3.0.39"
     "@commitlint/cli": "npm:^21.0.0"
     "@commitlint/config-conventional": "npm:^21.0.0"
+    "@paddle/paddle-js": "npm:^1.6.4"
+    "@paddle/paddle-node-sdk": "npm:^3.8.0"
     "@prisma/adapter-pg": "npm:^7.4.2"
     "@prisma/client": "npm:^7.4.2"
     "@sentry/nextjs": "npm:^10.56.0"

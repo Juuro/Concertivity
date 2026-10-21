@@ -59,4 +59,9 @@ export const userAdditionalFields = {
     type: "date",
     required: false,
   },
+  paddleCustomerId: {
+    type: "string",
+    required: false,
+    input: false,
+  },
 } satisfies Record<string, DBFieldAttribute>

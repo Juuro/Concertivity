@@ -1,13 +1,34 @@
 @use "../../styles/variables.scss";
+@use "../../styles/buttons.scss" as buttons;
 
 .hero {
-  background-color: variables.$color-primary;
+  background: linear-gradient(
+    135deg,
+    variables.$color-primary 0%,
+    #ff3385 55%,
+    #ff6ba3 100%
+  );
   border-radius: 1rem;
+  box-shadow: 0 12px 40px rgba(255, 6, 102, 0.25);
   color: variables.$color-white;
-  padding: 2rem;
+  margin-bottom: 1.5rem;
+  overflow: hidden;
+  padding: clamp(2rem, 5vw, 3rem) clamp(1.25rem, 4vw, 2rem);
+  position: relative;
   text-align: center;
   width: 100%;
-  margin-bottom: 1.5rem;
+
+  &::before {
+    background: radial-gradient(
+      circle at 85% 15%,
+      rgba(255, 255, 255, 0.18) 0%,
+      transparent 55%
+    );
+    content: "";
+    inset: 0;
+    pointer-events: none;
+    position: absolute;
+  }
 }
 
 .freeBadge {
@@ -54,5 +75,53 @@
   li::before {
     content: "✓ ";
     font-weight: bold;
+  }
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: center;
+  margin-top: 1.75rem;
+  position: relative;
+}
+
+.ctaPrimary {
+  @include buttons.btn-primary;
+  background-color: variables.$color-white;
+  color: variables.$color-primary;
+  font-weight: 700;
+  min-height: 2.75rem;
+  min-width: 10rem;
+  padding: 0.75rem 1.75rem;
+
+  &:hover {
+    background-color: variables.$admin-pink-50;
+    color: variables.$color-primary;
+  }
+
+  &:focus-visible {
+    outline-color: variables.$color-white;
+  }
+}
+
+.ctaSecondary {
+  @include buttons.btn-secondary;
+  border-color: rgba(255, 255, 255, 0.65);
+  color: variables.$color-white;
+  font-weight: 600;
+  min-height: 2.75rem;
+  min-width: 10rem;
+  padding: 0.75rem 1.75rem;
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.12);
+    border-color: variables.$color-white;
+    color: variables.$color-white;
+  }
+
+  &:focus-visible {
+    outline-color: variables.$color-white;
   }
 }

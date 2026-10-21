@@ -1,0 +1,27 @@
+@use "../../../src/styles/buttons.scss" as buttons;
+@use "../../../src/styles/variables.scss";
+
+.button {
+  @include buttons.btn-secondary;
+  font-size: 0.9375rem;
+  min-height: 2.75rem;
+  padding: 0.75rem 1.25rem;
+  width: 100%;
+}
+
+.buttonPrimary {
+  @include buttons.btn-primary;
+  font-weight: 600;
+}
+
+.error {
+  color: #b00020;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+}
+
+.notice {
+  color: variables.$color-black;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+}

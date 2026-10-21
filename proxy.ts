@@ -70,9 +70,9 @@ function buildCsp(nonce: string): string {
 
   const directives = [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ""}`,
-    "style-src 'self' 'unsafe-inline'",
-    `connect-src 'self' https://*.ingest.sentry.io https://tiles.openfreemap.org${postHogConnectSrc}`,
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ""} https://cdn.paddle.com https://sandbox-cdn.paddle.com`,
+    "style-src 'self' 'unsafe-inline' https://cdn.paddle.com https://sandbox-cdn.paddle.com",
+    `connect-src 'self' https://*.ingest.sentry.io https://tiles.openfreemap.org https://api.paddle.com https://sandbox-api.paddle.com${postHogConnectSrc}`,
     "img-src 'self' blob: data: https://upload.wikimedia.org https://avatars.githubusercontent.com https://tiles.openfreemap.org",
     "font-src 'self' data:",
     "object-src 'none'",
@@ -80,6 +80,7 @@ function buildCsp(nonce: string): string {
     "form-action 'self'",
     "frame-ancestors 'none'",
     "worker-src 'self' blob:",
+    "frame-src 'self' https://checkout.paddle.com https://sandbox-checkout.paddle.com https://buy.paddle.com https://sandbox-buy.paddle.com",
   ]
 
   if (sentryCspReportUrl) {

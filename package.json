@@ -8,7 +8,7 @@
     "@ai-sdk/groq": "^3.0.39",
     "@prisma/adapter-pg": "^7.4.2",
     "@prisma/client": "^7.4.2",
-    "@sentry/nextjs": "^10.56.0",
+    "@sentry/nextjs": "^10.75.2",
     "ai": "^6.0.198",
     "better-auth": "1.6.22",
     "lastfm-ts-api": "^1.0.0",
